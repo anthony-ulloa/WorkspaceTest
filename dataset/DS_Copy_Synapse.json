@@ -1,0 +1,34 @@
+{
+	"name": "DS_Copy_Synapse",
+	"properties": {
+		"parameters": {
+			"C_Sink_TableOrFile": {
+				"type": "string"
+			},
+			"C_Sink_SchemaOrPath": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "OracleToSynapse_DataSets/Source_DataSets"
+		},
+		"annotations": [],
+		"type": "SqlPoolTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().C_Sink_SchemaOrPath",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().C_Sink_TableOrFile",
+				"type": "Expression"
+			}
+		},
+		"sqlPool": {
+			"referenceName": "Landing",
+			"type": "SqlPoolReference"
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

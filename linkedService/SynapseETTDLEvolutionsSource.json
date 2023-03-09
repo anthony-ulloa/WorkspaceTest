@@ -1,0 +1,40 @@
+{
+	"name": "SynapseETTDLEvolutionsSource",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"parameters": {
+			"C_P_KV_Secret": {
+				"type": "string"
+			},
+			"C_P_KV_Service": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlDW",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=azuessywadl02.sql.azuresynapse.net;Initial Catalog=Landing;User ID=Sqladminuser",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "azueslskvoadl01",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"C_C_KV_Service": {
+							"value": "@linkedService().C_P_KV_Service",
+							"type": "Expression"
+						}
+					}
+				},
+				"secretName": {
+					"value": "@linkedService().C_P_KV_Secret",
+					"type": "Expression"
+				}
+			}
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

@@ -1,0 +1,635 @@
+{
+	"name": "VentasAmdocs Queries 002",
+	"properties": {
+		"folder": {
+			"name": "VentasAmdocs"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "833b1435-d1ed-4fda-acfe-d6006b44a4bd"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"import pyspark.sql.functions as F"
+				],
+				"execution_count": 51
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Querie 001a"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Tabla TBVALID_VALUE"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"TBVALID_VALUE = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/PRDSEOWNA/TBVALID_VALUE/2022/12/14/TBVALID_VALUE_2022-12-14T07:11:35.2095359.csv', format='csv'\r\n",
+					", header=True\r\n",
+					")\r\n",
+					"display(TBVALID_VALUE.limit(10))\r\n",
+					"TBVALID_VALUE.count()"
+				],
+				"execution_count": 39
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Tabla TBDECODE"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"TBDECODE = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/PRDSEOWNA/TBDECODE/2022/12/14/TBDECODE.csv', format='csv'\r\n",
+					",delimiter='|', header=True\r\n",
+					")\r\n",
+					"display(TBDECODE.limit(10))\r\n",
+					"TBDECODE.count()"
+				],
+				"execution_count": 40
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"TBDECODE.columns"
+				],
+				"execution_count": 41
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"TBDECODE = TBDECODE.select([F.col(col).alias(col.strip()) for col in TBDECODE.columns])\r\n",
+					"TBDECODE.columns"
+				],
+				"execution_count": 42
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(TBDECODE.limit(5))\r\n",
+					"TBDECODE.count()"
+				],
+				"execution_count": 43
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Tabla TBAP_ITEM"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"TBAP_ITEM = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/PRDOMSOWN/TBAP_ITEM/2022/12/15/TBAP_ITEM_2022-12-15T14:42:01.4649578.csv', format='csv'\r\n",
+					", header=True\r\n",
+					")\r\n",
+					"display(TBAP_ITEM.limit(10))\r\n",
+					"TBAP_ITEM.count()"
+				],
+				"execution_count": 44
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Tabla TBCATALOG_ITEM"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"TBCATALOG_ITEM = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/PRDSEOWNA/TBCATALOG_ITEM/2022/12/14/TBCATALOG_ITEM_2022-12-14T07:11:34.6847178.csv', format='csv'\r\n",
+					", header=True\r\n",
+					")\r\n",
+					"display(TBCATALOG_ITEM.limit(10))\r\n",
+					"TBCATALOG_ITEM.count()"
+				],
+				"execution_count": 45
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Tabla TBORDER_ACTION"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"TBORDER_ACTION = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/PRDOMSOWN/TBORDER_ACTION/2022/12/14/TBORDER_ACTION_2022-12-14T07:14:06.3190825.csv', format='csv'\r\n",
+					", header=True\r\n",
+					")\r\n",
+					"display(TBORDER_ACTION.limit(10))\r\n",
+					"TBORDER_ACTION.count()"
+				],
+				"execution_count": 46
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Llenado de datos en tabla: TBL_CTL_OMS_CAT_MAESTROS\r\n",
+					"\r\n",
+					"INSERT /* + DIRECT */ INTO SCH_MST_BLUE.TBL_CTL_OMS_CAT_MAESTROS\r\n",
+					"SELECT\r\n",
+					"\tA.DISCRETE_CODE\r\n",
+					"\t,A.DOMAIN_NAME\r\n",
+					"\t,B.LANGUAGE_ID\r\n",
+					"\t,B.CAPTION\r\n",
+					"\t,A.OWNERSHIP\r\n",
+					"\t,A.DECODE_ID\r\n",
+					"\t,A.DESCRIPTION\r\n",
+					"\t,A.MINIMUM_VALUE\r\n",
+					"\t,A.MAXIMUM_VALUE\r\n",
+					"\t,A.VISIBLE\r\n",
+					"\t,A.APPLICATION_ID\r\n",
+					"FROM SCH_PSTG_BLUE.OMS_TBVALID_VALUE A\r\n",
+					"INNER JOIN SCH_PSTG_BLUE.OMS_TBDECODE B\r\n",
+					"\tON A.DECODE_ID = B.DECODE_ID\r\n",
+					"ORDER BY A.DOMAIN_NAME, DISCRETE_CODE\r\n",
+					";\r\n",
+					"\r\n",
+					"line 60"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"TBL_CTL_OMS_CAT_MAESTROS = TBVALID_VALUE.join(TBDECODE, 'DECODE_ID', 'inner') \\\r\n",
+					"                            .orderBy('DOMAIN_NAME', 'DISCRETE_CODE')"
+				],
+				"execution_count": 47
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(TBL_CTL_OMS_CAT_MAESTROS.limit(10))\r\n",
+					"TBL_CTL_OMS_CAT_MAESTROS.count()"
+				],
+				"execution_count": 48
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Llenado de datos en tabla: SCH_PSTG_BLUE.TBL_TMP_OMS_TBAP_ITEM_ALL_ATRS_LIST_1\r\n",
+					"\r\n",
+					"INSERT /* + DIRECT */ INTO SCH_PSTG_BLUE.TBL_TMP_OMS_TBAP_ITEM_ALL_ATRS_LIST_1\r\n",
+					"\r\n",
+					"line 89"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"discardedItems = ['1531','283552335','283557045','283635225','4953','67103','67243','67773','788105',\r\n",
+					"                '8027002','67553','1868645','283561155','283695795','283638105','283802555','283711635',\r\n",
+					"                '1841475','283833025','283938025','283870155','284004055','284004625','284015555',\r\n",
+					"                '284015455','284096895' ]\r\n",
+					"\r\n",
+					"selectedColumns = ['PARTITION_DATE','PARTITION_KEY','AP_ID','AP_VERSION_ID','MAIN_IND','MAIN_ITEM_ID','CTDB_CRE_DATETIME',\r\n",
+					"            'CTDB_UPD_DATETIME','CTDB_LAST_UPDATOR','FINAL_STATUS','ITEM_DEF_ID','ITEM_DEF_VER','PRODUCT_DEF_ID','PRODUCT_DEF_VER',\r\n",
+					"            'SERVICE_ID','SERVICE_TYPE','REASON','PROV_DATE','ACTION_TYPE','COMMITTED_IND','CUSTOMER_ID','STATE','ORDER_MODE',\r\n",
+					"            'STATUS','ORDER_ACTION_ID','START_DATE','END_DATE','LAST_SCHED_DATE','AP_ID_DOMINANT','PC_RELATION_ID','PC_RELATION_VER',\r\n",
+					"            'SUBSCRIBER_ID','PRIMARY_IDENTIFIER','ADD_ON_OFFER_DEF_ID','ADD_ON_OFFER_DEF_VER','SUB_STATUS','OFFER_DEF_ID',\r\n",
+					"            'OFFER_DEF_VER','ROOT_CUSTOMER_ID','SUB_STATE','NEW_STATUS_MODE','PRODUCT_TYPE', 'ITEM_ATRS_LIST', 'OCURRENCY']"
+				],
+				"execution_count": 49
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(\r\n",
+					"    TBAP_ITEM \\\r\n",
+					"    .withColumn('OCURRENCY', F.ceil(((F.length('ITEM_ATRS_LIST') - F.length(F.regexp_replace(F.col('ITEM_ATRS_LIST'),';',''))) / 1) + 1))\r\n",
+					"    .select('ITEM_ATRS_LIST', 'OCURRENCY').limit(5))"
+				],
+				"execution_count": 53
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"TBL_TMP_OMS_TBAP_ITEM_ALL_ATRS_LIST_1 = TBAP_ITEM \\\r\n",
+					"    .where(~TBAP_ITEM.ITEM_DEF_ID.isin(discardedItems)) \\\r\n",
+					"    .withColumn('OCURRENCY', F.ceil(((F.length('ITEM_ATRS_LIST') - F.length(F.regexp_replace(F.col('ITEM_ATRS_LIST'),';',''))) / 1) + 1)) \\\r\n",
+					"    .select(selectedColumns)\r\n",
+					"\r\n",
+					"# .withColumn('ITEM_ATRS_LIST', )  # (SUBSTRING(ITEM.ITEM_ATRS_LIST, 1, 4000))::VARCHAR(4000) AS ITEM_ATRS_LIST"
+				],
+				"execution_count": 54
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(TBL_TMP_OMS_TBAP_ITEM_ALL_ATRS_LIST_1.limit(5))\r\n",
+					"TBL_TMP_OMS_TBAP_ITEM_ALL_ATRS_LIST_1.count()"
+				],
+				"execution_count": 55
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Llenado de datos en tabla: TBL_TMP_OMS_TBAP_ITEM_ATRS_LIST\r\n",
+					"\r\n",
+					"INSERT /* + DIRECT */ INTO SCH_PSTG_BLUE.TBL_TMP_OMS_TBAP_ITEM_ATRS_LIST\r\n",
+					"\r\n",
+					"line 164"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"CAT_TBITEM = TBCATALOG_ITEM \\\r\n",
+					"            .select('CID' ,'PCVERSION_ID' ,'ENT_TYPE' ,'ITEM_TYPE' ,'CAPTION') \\\r\n",
+					"            .orderBy('CID','PCVERSION_ID')\r\n",
+					"\r\n",
+					"CAT_MAESTRO = TBL_CTL_OMS_CAT_MAESTROS \\\r\n",
+					"            .select('DOMAIN_NAME','DISCRETE_CODE','LANGUAGE_ID','CAPTION') \\\r\n",
+					"            .orderBy('DOMAIN_NAME','DISCRETE_CODE')"
+				],
+				"execution_count": 58
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(CAT_TBITEM.limit(5))\r\n",
+					"display(CAT_MAESTRO.limit(5))"
+				],
+				"execution_count": 59
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Llenado de datos en tabla: TBL_TMP_OR_ORDER_ITEMS_H33\r\n",
+					"\r\n",
+					"INSERT /* + DIRECT */ INTO SCH_PSTG_BLUE.TBL_TMP_OR_ORDER_ITEMS_H33\r\n",
+					"\r\n",
+					"line 452"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Se repite, ya estaria cargado\r\n",
+					"\r\n",
+					"# CAT_TBITEM = TBCATALOG_ITEM \\\r\n",
+					"#             .select('CID' ,'PCVERSION_ID' ,'ENT_TYPE' ,'ITEM_TYPE' ,'CAPTION') \\\r\n",
+					"#             .orderBy('CID','PCVERSION_ID')\r\n",
+					"\r\n",
+					"# CAT_MAESTRO = TBL_CTL_OMS_CAT_MAESTROS \\\r\n",
+					"#             .select('DOMAIN_NAME','DISCRETE_CODE','LANGUAGE_ID','CAPTION') \\\r\n",
+					"#             .orderBy('DOMAIN_NAME','DISCRETE_CODE')\r\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
+			}
+		]
+	}
+}

@@ -1,0 +1,78 @@
+{
+	"name": "DsCsvDynamicSourceABSSnowflake",
+	"properties": {
+		"description": "Dataset dinamico para conectar a un archivo csv de Azure Blob Storage",
+		"linkedServiceName": {
+			"referenceName": "LSDynmaicToABSWithSasUri",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"C_C_KV_Service": {
+					"value": "@dataset().P_CCKVService",
+					"type": "Expression"
+				},
+				"CCKVSecret": {
+					"value": "@dataset().P_CCKVSecret",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"P_CCKVService": {
+				"type": "string"
+			},
+			"P_CCKVSecret": {
+				"type": "string"
+			},
+			"P_File": {
+				"type": "string"
+			},
+			"P_Path": {
+				"type": "string"
+			},
+			"P_Directory": {
+				"type": "string"
+			},
+			"P_AccountName": {
+				"type": "string"
+			},
+			"P_EndpointSuffix": {
+				"type": "string"
+			},
+			"P_IsHeader": {
+				"type": "bool",
+				"defaultValue": true
+			}
+		},
+		"folder": {
+			"name": "Snowflake"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@if(dataset().P_IsHeader,dataset().P_File,null)",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().P_Directory",
+					"type": "Expression"
+				},
+				"container": {
+					"value": "@dataset().P_Path",
+					"type": "Expression"
+				}
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": {
+				"value": "@if(dataset().P_IsHeader,true,false)",
+				"type": "Expression"
+			},
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

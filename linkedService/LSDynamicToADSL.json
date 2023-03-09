@@ -1,0 +1,44 @@
+{
+	"name": "LSDynamicToADSL",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"description": "Link service dinámico para crear archivos parquet",
+		"parameters": {
+			"CCKVService": {
+				"type": "string"
+			},
+			"CCKVSecret": {
+				"type": "string"
+			},
+			"URL": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "@{linkedService().URL}",
+			"accountKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "azueslskvoadl01",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"C_C_KV_Service": {
+							"value": "@linkedService().CCKVService",
+							"type": "Expression"
+						}
+					}
+				},
+				"secretName": {
+					"value": "@linkedService().CCKVSecret",
+					"type": "Expression"
+				}
+			}
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

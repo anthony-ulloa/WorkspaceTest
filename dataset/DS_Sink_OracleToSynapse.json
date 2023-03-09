@@ -1,0 +1,50 @@
+{
+	"name": "DS_Sink_OracleToSynapse",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Oracle_OFNXSTB_Source",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"C_P_KV_Secret": {
+					"value": "@dataset().C_C_Source_KV_Secret",
+					"type": "Expression"
+				},
+				"C_P_KV_Service": {
+					"value": "@dataset().C_C_Source_KV_Service",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"C_C_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"C_C_Source_TableOrFile": {
+				"type": "string"
+			},
+			"C_C_Source_KV_Service": {
+				"type": "string"
+			},
+			"C_C_Source_KV_Secret": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "OracleToSynapse_DataSets/Source_DataSets"
+		},
+		"annotations": [],
+		"type": "OracleTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().C_C_Source_SchemaOrPath",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().C_C_Source_TableOrFile",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

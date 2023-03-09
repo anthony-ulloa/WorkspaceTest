@@ -1,0 +1,28 @@
+{
+	"name": "DS_init_Output_Synapse_Snowflake",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Synapse_init",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"TableName": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Snowflake"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": {
+				"value": "@concat('MIGRATION_',dataset().TableName)",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

@@ -1,0 +1,201 @@
+{
+	"name": "script_si_paso_006a",
+	"properties": {
+		"folder": {
+			"name": "Facturación"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "AZUESSYPDDL00",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "9ce558f3-3bd3-40e8-9aae-6fc7d21edbde"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "python"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/cf5dca6f-5497-4f92-bba0-a7bb0371b601/resourceGroups/AZUESRG0ADL02/providers/Microsoft.Synapse/workspaces/azuessywadl02/bigDataPools/AZUESSYPDDL00",
+				"name": "AZUESSYPDDL00",
+				"type": "Spark",
+				"endpoint": "https://azuessywadl02.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/AZUESSYPDDL00",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.2",
+				"nodeCount": 10,
+				"cores": 4,
+				"memory": 28,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"print(\"Hello World\")"
+				],
+				"execution_count": 1
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from pyspark.sql import SparkSession\n",
+					"from pyspark.sql.functions import col\n",
+					"from pyspark.sql import functions as F\n",
+					"\n",
+					"spark=SparkSession.builder.master(\"local[1]\").appName(\"Facturation-1\").getOrCreate()\n",
+					"spark"
+				],
+				"execution_count": 6
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"path = r\"C:\\Users\\senga\\Documents\\ATT\\Facturation\\data\\MCM_CUSTOMER.csv\"\n",
+					"path1 = r\"C:\\Users\\senga\\Documents\\ATT\\Facturation\\data\\TBL_CONF_GET_CONDITION.csv\"\n",
+					"\n",
+					"path2 = r\"C:\\Users\\senga\\Documents\\ATT\\Facturation\\data\\MCM_SUBSCRIBER_202301291808.csv\"\n",
+					"path3 = r\"C:\\Users\\senga\\Documents\\ATT\\Facturation\\data\\MCM_AGREEMENT_RESOURCE_202301291807.csv\"\n",
+					"\n",
+					"df_MCM_CUSTOMER = spark.read.load(path, format='csv', delimiter='|', header=True)\n",
+					"df_TBL_CONF_GET_CONDITION = spark.read.load(path1, format='csv', delimiter='|', header=True)\n",
+					"\n",
+					"df_MCM_SUBSCRIBER = spark.read.load(path2, format='csv', delimiter=',', header= True)\n",
+					"df_MCM_AGREEMENT_RESOURCE = spark.read.load(path3, format='csv', delimiter=',', header=True)\n",
+					"\n",
+					"df_MCM_CUSTOMER.show(5)\n",
+					"df_TBL_CONF_GET_CONDITION.show(5)\n",
+					"#df_MCM_SUBSCRIBER.show(5)\n",
+					""
+				],
+				"execution_count": 60
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"      /* Creating Temp Views */"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_MCM_CUSTOMER.createOrReplaceTempView(\"MCM_CUSTOMER\")\n",
+					"df_TBL_CONF_GET_CONDITION.createOrReplaceTempView(\"TBL_CONF_GET_CONDITION\")\n",
+					"df_MCM_SUBSCRIBER.createOrReplaceTempView(\"MCM_SUBSCRIBER\")\n",
+					"df_MCM_AGREEMENT_RESOURCE.createOrReplaceTempView(\"MCM_AGREEMENT_RESOURCE\")\n",
+					""
+				],
+				"execution_count": 61
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"     /* Insert de datos en tabla temporal: SCH_PSTG_BLUE.TBL_TMP_SI_SUSCRIPTOR_RESOURCES */"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"scrolled": false
+				},
+				"source": [
+					"DIAS_DELTA = 4\n",
+					"\n",
+					"qstr_l1=r\"\"\"SELECT CUSTOMER_ID\n",
+					"        FROM MCM_CUSTOMER CU\n",
+					"        WHERE DATE_TRUNC('DD',CU.CTRL_INGEST_DATE) BETWEEN\n",
+					"               (SELECT DATE_TRUNC('DD',FECHA_INICIO) FROM TBL_CONF_GET_CONDITION WHERE ESQUEMA = 'SCH_PSTG_BLUE' AND TRIM(TABLA) = 'MCM_CUSTOMER')\n",
+					"                 AND\n",
+					"               (SELECT DATE_TRUNC('DD',FECHA_FIN) FROM TBL_CONF_GET_CONDITION WHERE ESQUEMA = 'SCH_PSTG_BLUE' AND TRIM(TABLA) = 'MCM_CUSTOMER')\n",
+					"        ORDER BY CUSTOMER_ID\"\"\"\n",
+					"\n",
+					"#We are using f'string' for string formation\n",
+					"qstr_l2 = f\"\"\"SELECT NULL\n",
+					"        FROM MCM_SUBSCRIBER AS SUBS\n",
+					"        WHERE (SYS_CREATION_DATE >= DATE_TRUNC('DD',(current_timestamp() - interval {DIAS_DELTA} days))\n",
+					"            OR SYS_UPDATE_DATE >= DATE_TRUNC('DD',(current_timestamp()- interval {DIAS_DELTA} days))\n",
+					"            OR CUSTOMER_ID IN ({qstr_l1}))\"\"\"\n",
+					"\n",
+					"qstr_l3 =f\"\"\"SELECT\n",
+					"        RS.AGREEMENT_NO\n",
+					"        ,RS.SYS_CREATION_DATE\n",
+					"        ,RS.RESOURCE_PRM_CD\n",
+					"        ,RS.RESOURCE_TYPE\n",
+					"        ,RS.RESOURCE_VALUE\n",
+					"        ,RS.EFFECTIVE_DATE\n",
+					"        ,RS.RESRC_SEQ_NO\n",
+					"        ,MAX(RS.RESRC_SEQ_NO) OVER (PARTITION BY RS.AGREEMENT_NO,RS.RESOURCE_TYPE) AS MAX_RESRC_SEQ_NO\n",
+					"        ,MIN(RS.RESRC_SEQ_NO) OVER (PARTITION BY RS.AGREEMENT_NO,RS.RESOURCE_TYPE) AS MIN_RESRC_SEQ_NO\n",
+					"    FROM MCM_AGREEMENT_RESOURCE RS\n",
+					"    WHERE EXISTS ({qstr_l2}  \n",
+					"        AND RS.AGREEMENT_NO = SUBS.SUBSCRIBER_NO \n",
+					"    )\n",
+					"    ORDER BY RS.AGREEMENT_NO\"\"\"\n",
+					"\n",
+					"qstr_l4 = f\"\"\"SELECT\n",
+					"    AGREEMENT_NO\n",
+					"    ,MAX(CASE WHEN RESOURCE_TYPE = 'C' AND RSC.RESRC_SEQ_NO = RSC.MAX_RESRC_SEQ_NO THEN RESOURCE_VALUE END) Voice_Line_MSISDN\n",
+					"    ,MAX(CASE WHEN RESOURCE_TYPE = 'I' AND RSC.RESRC_SEQ_NO = RSC.MAX_RESRC_SEQ_NO THEN RESOURCE_VALUE END) IMSI_number\n",
+					"    ,MAX(CASE WHEN RESOURCE_TYPE = 'U' AND RSC.RESRC_SEQ_NO = RSC.MAX_RESRC_SEQ_NO THEN RESOURCE_VALUE END) UFMI\n",
+					"    --,MAX(CASE WHEN RESOURCE_TYPE = 'EI' THEN RESOURCE_VALUE END) EIMSI\n",
+					"    --,MAX(CASE WHEN RESOURCE_TYPE = 'EC' THEN RESOURCE_VALUE END) EMSISDN\n",
+					"    ,current_timestamp() CTRL_INGEST_DATE\n",
+					"    ,MAX(CASE WHEN RESOURCE_TYPE = 'C' AND RSC.RESRC_SEQ_NO = RSC.MIN_RESRC_SEQ_NO THEN RESOURCE_VALUE END) Voice_Line_MSISDN_Inicial\n",
+					"    ,MAX(CASE WHEN RESOURCE_TYPE = 'I' AND RSC.RESRC_SEQ_NO = RSC.MIN_RESRC_SEQ_NO THEN RESOURCE_VALUE END) IMSI_number_Inicial\n",
+					"    ,MAX(CASE WHEN RESOURCE_TYPE = 'U' AND RSC.RESRC_SEQ_NO = RSC.MIN_RESRC_SEQ_NO THEN RESOURCE_VALUE END) UFMI_Inicial\n",
+					"FROM ({qstr_l3}) AS RSC\n",
+					"WHERE (RSC.RESRC_SEQ_NO = RSC.MAX_RESRC_SEQ_NO OR RSC.RESRC_SEQ_NO = RSC.MIN_RESRC_SEQ_NO)\n",
+					"GROUP BY RSC.AGREEMENT_NO \"\"\"\n",
+					"\n",
+					"print(qstr_l4)\n",
+					"df_TBL_TMP_SI_SUSCRIPTOR_RESOURCES=spark.sql(qstr_l4)\n",
+					"df_TBL_TMP_SI_SUSCRIPTOR_RESOURCES.show(5)"
+				],
+				"execution_count": 72
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"    /* SCRATCH PAD AREA */"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"spark.sql(\"select current_timestamp(), current_timestamp() - interval 2 days\").show(truncate=False)"
+				],
+				"execution_count": 50
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					""
+				]
+			}
+		]
+	}
+}

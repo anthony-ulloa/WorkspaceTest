@@ -1,0 +1,53 @@
+{
+	"name": "LSDynamicToOracle",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"description": "Linked service dinamico para conectar con las bases de datos Oracle",
+		"parameters": {
+			"HostName": {
+				"type": "string"
+			},
+			"PortNumber": {
+				"type": "string"
+			},
+			"ServiceName": {
+				"type": "string"
+			},
+			"UserName": {
+				"type": "string"
+			},
+			"CCKVService": {
+				"type": "string"
+			},
+			"CCKVSecret": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Oracle",
+		"typeProperties": {
+			"connectionString": "host=@{linkedService().HostName};port=@{linkedService().PortNumber};serviceName=@{linkedService().ServiceName};user id=@{linkedService().UserName}",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "azueslskvoadl01",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"C_C_KV_Service": {
+							"value": "@linkedService().CCKVService",
+							"type": "Expression"
+						}
+					}
+				},
+				"secretName": {
+					"value": "@linkedService().CCKVSecret",
+					"type": "Expression"
+				}
+			}
+		},
+		"connectVia": {
+			"referenceName": "IntegrationRuntime1",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

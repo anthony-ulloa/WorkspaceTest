@@ -1,0 +1,20 @@
+{
+	"name": "LogicalResourceDeactivated",
+	"properties": {
+		"folder": {
+			"name": "InsertToTables"
+		},
+		"content": {
+			"query": "------------------\n -- CREATE TABLE [dbo].[Test2LogicalResourceDeactivated]\n -- ( \n -- \t[Description] [varchar](200)  NULL,\n -- \t[LogicalResourceDeactivatedId] [bigint]  NULL,\n -- \t[Name] [varchar](20)  NULL,\n -- \t[Color] [varchar](15)  NULL,\n -- \t[LrStatus] [varchar](10)  NULL,\n -- \t[UpdatedDate] [datetime2](7)  NULL,\n -- \t[ProcessedDate] [datetime2](7)  NULL,\n -- \t[DialedNumber] [varchar](10)  NULL,\n -- \t[LogicalResourceId] [int]  NULL\n -- )\n -- WITH\n -- (\n -- \tDISTRIBUTION = ROUND_ROBIN,\n -- \tCLUSTERED COLUMNSTORE INDEX\n -- );\n\n\n-- Copia a tabla dbo.LogicalResourceDeactivated desde DT_NUMEROS_CUARENTENA en adls\n\n--COPY INTO dbo.TestLogicalResourceDeactivated\nCOPY INTO dbo.TestLogicalResourceDeactivated\n(DialedNumber 1, UpdatedDate 2, LrStatus 3, Color 4) --MDN, FECHA_ACTUALIZADA, ID_STATUS, COLOR\nFROM 'https://azuesdlsadl01.dfs.core.windows.net/trusted/Troya/DT_NUMEROS_CUARENTENA/2023/02/14/*parquet'\nWITH\n(\n\tFILE_TYPE = 'PARQUET'\n\t,MAXERRORS = 0\n\t,COMPRESSION = 'snappy'\n\t,CREDENTIAL = ( IDENTITY = 'Managed Identity' )\n)\n\n\n\n---------------\nSELECT TOP (100) [Description]\n,[LogicalResourceDeactivatedId]\n,[Name]\n,[Color]\n,[LrStatus]\n,[UpdatedDate]\n,[ProcessedDate]\n,[DialedNumber]\n,[LogicalResourceId]\n -- FROM [dbo].[TestLogicalResourceDeactivated]\n FROM [dbo].[Test2LogicalResourceDeactivated]\n-- WHERE [color] LIKE 'OCRE'\n-- WHERE [color] LIKE 'BLUE'\n ;\n\n---- Truncate\nTRUNCATE TABLE [dbo].[Test2LogicalResourceDeactivated];  \nGO  \n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "CDLEVQA",
+				"poolName": "CDLEVQA"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -1,0 +1,20 @@
+{
+	"name": "Creacion External File Format",
+	"properties": {
+		"folder": {
+			"name": "TablasExternas"
+		},
+		"content": {
+			"query": "-- Sintaxis\n--Create an external file format for PARQUET files.\n-- CREATE EXTERNAL FILE FORMAT file_format_name\n-- WITH (\n--         FORMAT_TYPE = PARQUET\n--     [ , DATA_COMPRESSION = {\n--        'org.apache.hadoop.io.compress.SnappyCodec'\n--      | 'org.apache.hadoop.io.compress.GzipCodec' }\n--    ]);\n\n\nCREATE EXTERNAL FILE FORMAT ParqueFileFormat\nWITH (\n    FORMAT_TYPE = PARQUET,\n    DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec'\n);\n\n\n-- Para revisar los external file formats\nSELECT * FROM sys.external_file_formats;",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "CDLEVQA",
+				"poolName": "CDLEVQA"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

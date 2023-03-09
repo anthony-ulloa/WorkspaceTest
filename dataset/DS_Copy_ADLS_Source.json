@@ -1,0 +1,35 @@
+{
+	"name": "DS_Copy_ADLS_Source",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "azuessywadl01-WorkspaceDefaultStorage",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"C_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"C_Source_TableOrFile": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "SnowFlakeToADLS_DataSets/Source_DataSets"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@concat(dataset().C_Source_TableOrFile,'.parquet')",
+					"type": "Expression"
+				},
+				"fileSystem": "input"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

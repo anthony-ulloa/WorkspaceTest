@@ -1,0 +1,322 @@
+{
+	"name": "TroyaLocal",
+	"properties": {
+		"folder": {
+			"name": "Tests"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "AZUESSYPDDL00",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "9d54d48f-4bb1-474b-bbaa-e380aad16f3a"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "python"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/cf5dca6f-5497-4f92-bba0-a7bb0371b601/resourceGroups/AZUESRG0ADL02/providers/Microsoft.Synapse/workspaces/azuessywadl02/bigDataPools/AZUESSYPDDL00",
+				"name": "AZUESSYPDDL00",
+				"type": "Spark",
+				"endpoint": "https://azuessywadl02.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/AZUESSYPDDL00",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.2",
+				"nodeCount": 10,
+				"cores": 4,
+				"memory": 28,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"print(\"Hello World\")"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"    /* IMPORTS */"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from pyspark.sql import SparkSession\n",
+					"from pyspark.sql.functions import col\n",
+					"from pyspark.sql import functions as F\n",
+					"\n",
+					"spark=SparkSession.builder.master(\"local[1]\").appName(\"TroyaApp\").getOrCreate()\n",
+					"spark"
+				],
+				"execution_count": 27
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"       /* Create DFs from the CSV files and strips the column names */\n",
+					"    "
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"path = r\"C:\\Users\\senga\\Downloads\\CM9_CONV_MIG_TRANS_KEY.csv\"\n",
+					"df_CM9_CONV_MIG_TRANS_KEY = spark.read.load(path, format='csv',  delimiter='|', header=True)"
+				],
+				"execution_count": 28
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_CM9_CONV_MIG_TRANS_KEY = df_CM9_CONV_MIG_TRANS_KEY.select([F.col(colname).alias(colname.strip()) for colname in df_CM9_CONV_MIG_TRANS_KEY.columns ])"
+				],
+				"execution_count": 29
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"path1 = r\"C:\\Users\\senga\\Downloads\\RM1_RESOURCE.csv\"\n",
+					"df_RM1_RES=spark.read.load(path1, format=\"csv\", delimiter=\"|\", header=True)\n",
+					"\n",
+					"path2 = r\"C:\\Users\\senga\\Downloads\\RM_RESOURCE_TYPE.csv\"\n",
+					"df_RM_RES_TYPE=spark.read.load(path2, format=\"csv\", delimiter=\"|\", header=True)"
+				],
+				"execution_count": 30
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_RM1_RES = df_RM1_RES.select([F.col(cname).alias(cname.strip()) for cname in df_RM1_RES.columns])\n",
+					"df_RM_RES_TYPE = df_RM_RES_TYPE.select([F.col(cname).alias(cname.strip()) for cname in df_RM_RES_TYPE.columns])"
+				],
+				"execution_count": 31
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"      /* Query-1 p01_DB_COPY_MCM_NUMEROS_CUARENTENA.sh  - Using spark SQL */\n",
+					"      "
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_RM1_RES.createOrReplaceTempView(\"RM1_RESOURCE\")\n",
+					"df_RM_RES_TYPE.createOrReplaceTempView(\"RM_RESOURCE_TYPE\")"
+				],
+				"execution_count": 32
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"qstr=r\"\"\"SELECT A.RESOURCE_VALUE MDN , A.SYS_UPDATE_DATE FECHA_ACTUALIZA                                                   \n",
+					"            , A.RESOURCE_STATUS ID_ESTATUS                                                        \n",
+					"            , 'BLUE' COLOR                                                                        \n",
+					"            , current_timestamp() FECHA_PROCESO                                                                \n",
+					"        FROM RM1_RESOURCE as A                                                           \n",
+					"            ,RM_RESOURCE_TYPE as B                                                         \n",
+					"          WHERE 1 = 1                                                                                \n",
+					"         AND A.RESOURCE_TYPE_ID = B.RRT_ID\n",
+					"         AND A.RESOURCE_status = 'AGING'                                                           \n",
+					"         AND B.RRT_ID = 8                                                                                            \n",
+					"         AND A.SYS_UPDATE_DATE >= TO_TIMESTAMP(concat(current_date() -1, ' 00:00:00'),'yyyy-MM-dd HH:mm:ss')             \n",
+					"         AND A.SYS_UPDATE_DATE <= TO_TIMESTAMP(concat(current_date() -1, ' 23:59:59'),'yyyy-MM-dd HH:mm:ss') \"\"\"\n",
+					"\n",
+					"df_DT_Numeros_cuarentena = spark.sql(qstr)\n",
+					"df_DT_Numeros_cuarentena.show(5)"
+				],
+				"execution_count": 33
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"    /* Query-2 p03_1_DB_COPY_MCM_DNS_MIGRADOS_NUMEROS_CUARENTENA.sh */\n",
+					"    "
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_CM9_CONV_MIG_TRANS_KEY.createOrReplaceTempView(\"CM9_CONV_MIG_TRANS_KEY\")"
+				],
+				"execution_count": 34
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"qstr = r\"SELECT LGC_DN_NUM as MDN_MCM FROM CM9_CONV_MIG_TRANS_KEY WHERE LGC_DN_NUM IS NOT NULL\"\n",
+					"df_MDNS_MIGRADOS_MCM = spark.sql(qstr)\n",
+					"df_MDNS_MIGRADOS_MCM.show(5)"
+				],
+				"execution_count": 35
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"    /* Query-3 p03_2_LIMPIA_MIGRADOS_NUMEROS_CUARENTENA.sh */\n",
+					"    "
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"    The actual query is to delete the rows from DT_NUMEROS_CUARENTENA - whose MDN MATCHED with MDN_MCM of MDNS_MIGRADOS_MCM table.\n",
+					"\n",
+					"    DELETE FROM DWDMART.DT_NUMEROS_CUARENTENA                                                        \n",
+					"     WHERE MDN IN                                                                                     \n",
+					"             (                                                                                     \n",
+					"               SELECT                                                                              \n",
+					"                 CUA.MDN                                                                           \n",
+					"               FROM DWDMART.MDNS_MIGRADOS_MCM REC                                                  \n",
+					"                   ,DWDMART.DT_NUMEROS_CUARENTENA CUA                                              \n",
+					"               WHERE 1 = 1                                                                         \n",
+					"               AND REC.MDN_MCM = CUA.MDN                                                           \n",
+					"             )\n",
+					"        \n",
+					"     The same effect can be achived - by creating a new dataframe by selecting all rows from  DT_NUMEROS_CUARENTENA \n",
+					"    whose MDN NOT MATCHED  with MDN_MCM of MDNS_MIGRADOS_MCM table."
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_DT_Numeros_cuarentena.createOrReplaceTempView(\"DT_NUMEROS_CUARENTENA\")\n",
+					"df_MDNS_MIGRADOS_MCM.createOrReplaceTempView(\"MDNS_MIGRADOS_MCM\")"
+				],
+				"execution_count": 39
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"qstr = r\"\"\"SELECT * FROM DT_NUMEROS_CUARENTENA WHERE \n",
+					"                         MDN NOT IN (SELECT MDN_MCM FROM MDNS_MIGRADOS_MCM)\"\"\"\n",
+					"df_DT_Numeros_cuarentena = spark.sql(qstr)\n",
+					"df_DT_Numeros_cuarentena.show(5)"
+				],
+				"execution_count": 41
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"    /* Query-4 p04_SPOOL_NUMEROS_CUARENTENA.sh */\n",
+					"    "
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_DT_Numeros_cuarentena.createOrReplaceTempView(\"DT_NUMEROS_CUARENTENA\")"
+				],
+				"execution_count": 42
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"qstr = r\"\"\"SELECT concat(MDN, '|',                                                            \n",
+					"       date_format(FECHA_ACTUALIZA, 'dd/MM/yyyy'), '|',                         \n",
+					"       ID_ESTATUS, '|',                                                     \n",
+					"       COLOR)                                                                  \n",
+					"  FROM DT_NUMEROS_CUARENTENA                                          \n",
+					"WHERE FECHA_ACTUALIZA >= TO_TIMESTAMP(concat(current_date() -1, ' 00:00:00'),'yyyy-MM-dd HH:mm:ss') \n",
+					"  AND FECHA_ACTUALIZA <= TO_TIMESTAMP(concat(current_date() -1, ' 23:59:59'),'yyyy-MM-dd HH:mm:ss') \n",
+					"\"\"\"\n",
+					"\n",
+					"df_Lista_cuarentena_TXT = spark.sql(qstr)\n",
+					"df_Lista_cuarentena_TXT.show(5)"
+				],
+				"execution_count": 47
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"    /* Query-5 p01_SPOOL_REPORTE_CUARENTENA_MTX.sh */\n",
+					"    "
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"path= r\"C:\\Users\\senga\\Downloads\\ARESOM-ARM_MSISDN_RESOURCE.csv\"\n",
+					"df_ARM_MSISDN_RESOURCE = spark.read.load(path, format=\"csv\", delimiter=\"|\", header=True)\n",
+					"df_ARM_MSISDN_RESOURCE.show(5)"
+				],
+				"execution_count": 50
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_ARM_MSISDN_RESOURCE.createOrReplaceTempView(\"ARM_MSISDN_RESOURCE\")"
+				],
+				"execution_count": 51
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"qstr = r\"\"\"SELECT concat(RES_VALUE,'|',                                                                                                                                 \n",
+					"             (CASE                                                                                                                                                             \n",
+					"                            WHEN SYS_UPDATE_DATE IS NULL THEN date_format(SYS_CREATION_DATE, 'dd/MM/yyyy')        \n",
+					"                            ELSE date_format(SYS_UPDATE_DATE, 'dd/MM/yyyy')                                                           \n",
+					"                          END) ,'|' ,                                                                                         \n",
+					"             RES_STATUS ,'|',                                                                                                       \n",
+					"             'OCRE')                                                                                                                                                        \n",
+					"FROM ARM_MSISDN_RESOURCE                                                                                                                      \n",
+					"        WHERE RES_STATUS = 'AGING'                                                                                                                                 \n",
+					"        AND RES_TYPE_ID = 10                                                                                                                                         \n",
+					"AND SYS_UPDATE_DATE >= TO_TIMESTAMP(concat(current_date() -1, ' 00:00:00'),'yyyy-MM-dd HH:mm:ss')           \n",
+					"AND SYS_UPDATE_DATE <= TO_TIMESTAMP(concat(current_date() -1, ' 23:59:59'),'yyyy-MM-dd HH:mm:ss') \n",
+					"         \"\"\"\n",
+					"\n",
+					"df_LISTA_CUARENTENA_MTX_TXT=spark.sql(qstr)\n",
+					"df_LISTA_CUARENTENA_MTX_TXT.show(5)"
+				],
+				"execution_count": 53
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"     /* SCRATCH PAD AREA */"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"spark.sql(\"select to_timestamp(concat(current_date() -1,' 00:00:00'),'yyyy-MM-dd HH:mm:ss')\").show(truncate=False)"
+				],
+				"execution_count": 68
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					""
+				]
+			}
+		]
+	}
+}

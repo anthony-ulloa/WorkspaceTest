@@ -1,0 +1,20 @@
+{
+	"name": "FacturacionMigrationInfo",
+	"properties": {
+		"folder": {
+			"name": "MigrationInfo"
+		},
+		"content": {
+			"query": "SELECT TOP (100) [ProcessName]\n,[Source_SchemaOrPath]\n,[Source_TableOrFile]\n,[Source_Type]\n,[Sink_DBOrContainer]\n,[Sink_SchemaOrPath]\n,[Sink_TableOrFile]\n,[ProcessType]\n,[Source_DirectoryFile]\n,[Sink_DirectoryFile]\n,[LoadDate]\n,[Source_Query]\n FROM [dbo].[MigrationTable]\n WHERE ProcessType LIKE 'Facturacion'",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "Landing",
+				"poolName": "Landing"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

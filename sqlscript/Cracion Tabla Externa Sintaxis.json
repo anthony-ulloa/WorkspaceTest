@@ -1,0 +1,20 @@
+{
+	"name": "Cracion Tabla Externa Sintaxis",
+	"properties": {
+		"folder": {
+			"name": "TablasExternas"
+		},
+		"content": {
+			"query": "-- Sintaxis\nCREATE EXTERNAL TABLE { database_name.schema_name.table_name | schema_name.table_name | table_name }\n    ( <column_definition> [ ,...n ] )\n    WITH (\n        LOCATION = 'hdfs_folder_or_filepath',\n        DATA_SOURCE = external_data_source_name,\n        FILE_FORMAT = external_file_format_name\n        [ , <reject_options> [ ,...n ] ]\n    )\n[;]\n\n<column_definition> ::=\ncolumn_name <data_type>\n    [ COLLATE collation_name ]\n    [ NULL | NOT NULL ]\n\n<reject_options> ::=\n{\n    | REJECT_TYPE = value | percentage,\n    | REJECT_VALUE = reject_value,\n    | REJECT_SAMPLE_VALUE = reject_sample_value,\n    | REJECTED_ROW_LOCATION = '/REJECT_Directory'\n}",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "master",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

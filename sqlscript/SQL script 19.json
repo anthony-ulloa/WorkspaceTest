@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 19",
+	"properties": {
+		"content": {
+			"query": "\n SELECT *\n FROM [dbo].[MigrationTable] where processtype = 'Inventories' and Sink_TableOrFile = 'SERIESENPENDING'",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "Landing",
+				"poolName": "Landing"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

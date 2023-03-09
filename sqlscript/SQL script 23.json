@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 23",
+	"properties": {
+		"content": {
+			"query": "SET ANSI_NULLS ON\nGO\nSET QUOTED_IDENTIFIER ON\nGO\n\nCREATE TABLE [dbo].[LogicalResourceDeactivated]\n( \n\t[Description] [varchar](200)  NULL,\n\t[LogicalResourceDeactivatedId] [int]  NULL,\n\t[Name] [varchar](20)  NULL,\n\t[Color] [varchar](15)  NULL,\n\t[LrStatus] [varchar](10)  NULL,\n\t[UpdatedDate] [datetime2](7)  NULL,\n\t[ProcessedDate] [datetime2](7)  NULL,\n\t[DialedNumber] [varchar](10)  NULL,\n\t[LogicalResourceId] [int]  NULL\n)\nWITH\n(\n\tDISTRIBUTION = ROUND_ROBIN,\n\tCLUSTERED COLUMNSTORE INDEX\n)\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "CDLEVQA",
+				"poolName": "CDLEVQA"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

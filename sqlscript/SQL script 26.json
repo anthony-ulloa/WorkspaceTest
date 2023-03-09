@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 26",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (100) [LogicalResourceDeactivatedId]\n,[Color]\n,[LrStatus]\n,[UpdatedDate]\n FROM [dbo].[TestLogicalResourceDeactivated]",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "CDLEVQA",
+				"poolName": "CDLEVQA"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

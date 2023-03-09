@@ -1,0 +1,44 @@
+{
+	"name": "DS_OracleToSynapse",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "DS_ParquetToSynapse_Input",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"C_P_KV_Service": "a",
+				"C_P_KV_Secret": "a"
+			}
+		},
+		"parameters": {
+			"C_C_Sink_SchemaOrPath": {
+				"type": "string"
+			},
+			"C_C_Sink_TableOrFile": {
+				"type": "string"
+			},
+			"C_C_Sink_KV_Service": {
+				"type": "string"
+			},
+			"C_C_Sink_KV_Secret": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "OracleToSynapse_DataSets/Source_DataSets"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().C_C_Sink_SchemaOrPath",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().C_C_Sink_TableOrFile",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

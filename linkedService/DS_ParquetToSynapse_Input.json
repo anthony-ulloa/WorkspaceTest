@@ -1,0 +1,23 @@
+{
+	"name": "DS_ParquetToSynapse_Input",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"parameters": {
+			"C_P_KV_Service": {
+				"type": "string"
+			},
+			"C_P_KV_Secret": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlDW",
+		"typeProperties": {
+			"connectionString": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=azuessywadl02.sql.azuresynapse.net;Initial Catalog=Landing"
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

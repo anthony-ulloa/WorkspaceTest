@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 27",
+	"properties": {
+		"content": {
+			"query": "drop DATABASE SCOPED CREDENTIAL DeltaLakeCredential\n\nSELECT * FROM sys.database_credentials\n\nCREATE DATABASE SCOPED CREDENTIAL DeltaLakeCredential\nWITH IDENTITY = 'Managed Identity'\n\nCREATE DATABASE SCOPED CREDENTIAL DeltaLakeCredential\nWITH IDENTITY = 'SHARED ACCESS SIGNATURE', --TYPE of access\nSECRET = 'sv=2021-06-08&ss=bfqt&srt=sco&sp=rwdlacupyx&se=2023-02-21T05:36:16Z&st=2023-02-20T21:36:16Z&spr=https&sig=qQ5nn%2FG4fFimycF0wubk0CFqtEF0zI4SN18S4aj5w8o%3D';\n\nCREATE EXTERNAL DATA SOURCE DeltaLakeStorageDS\nWITH\n  ( LOCATION = 'abfss://raw@azuesdlsadl01.dfs.core.windows.net',\n    CREDENTIAL = DeltaLakeCredential,\n    TYPE= HADOOP) ;\n\nCREATE EXTERNAL FILE FORMAT ParquetFormat \nWITH (\n    FORMAT_TYPE = PARQUET ,\n    DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec'\n\n);\n\ndrop EXTERNAL TABLE dbo.TBSTORE_DATA_CETAS\nCREATE EXTERNAL TABLE dbo.TBSTORE_DATA_CETAS\n(\nORDER_ACTION_ID varchar(50),\nPOS_ID varchar(50),\nSTREET varchar(50),\nEXTERNAL_NUMBER varchar(50),\nINTERNAL_NUMBER varchar(50),\nCP varchar(50),\nCOLONY varchar(50),\nCITY varchar(50),\nSTATE varchar(50),\nTOWN varchar(50),\nMARKET varchar(50),\nDESCRIPTION varchar(50),\nSTORE_TYPE varchar(50),\nSALES_REGION varchar(50),\nCREDIT_SALES_CHANNEL varchar(50),\nDEALER varchar(50),\nBUSINESS_NAME varchar(50),\nACTIVE varchar(50),\nVP varchar(50),\nCHANNEL varchar(50),\nSALES_REGION_ICAS varchar(50),\nSTORE_FORMAT varchar(50),\n CALLIDUS_ID varchar(50),\n DELIVERY varchar(50),\nOPERATION_AREA varchar(50))\n WITH (\n        LOCATION = '/General/Oracle/SOMSDR/PRDOMSOWN/TBSTORE_DATA/2023/02/20/TBSTORE_DATA_2023-02-20T08:16:28.8900424.parquet',\n        DATA_SOURCE = DeltaLakeStorageDS,\n        FILE_FORMAT = ParquetFormat\n);\n\n\n\n    select top 10 * from dbo.TBSTORE_DATA_CETAS\n\n\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "CDLEVQA",
+				"poolName": "CDLEVQA"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

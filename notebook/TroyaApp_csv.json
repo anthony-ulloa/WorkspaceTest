@@ -1,0 +1,782 @@
+{
+	"name": "TroyaApp_csv",
+	"properties": {
+		"folder": {
+			"name": "Troya"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "AZUESSYPDDL00",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "6a0d5dd5-7f40-4759-aee3-ca08e1dbb693"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/cf5dca6f-5497-4f92-bba0-a7bb0371b601/resourceGroups/AZUESRG0ADL02/providers/Microsoft.Synapse/workspaces/azuessywadl02/bigDataPools/AZUESSYPDDL00",
+				"name": "AZUESSYPDDL00",
+				"type": "Spark",
+				"endpoint": "https://azuessywadl02.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/AZUESSYPDDL00",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.2",
+				"nodeCount": 10,
+				"cores": 4,
+				"memory": 28,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Proceso Troya"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## Carga de información"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_CM9_CONV_MIG_TRANS_KEY = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/PRDCUSTO/CM9_CONV_MIG_TRANS_KEY/2022/12/12/CM9_CONV_MIG_TRANS_KEY_2022-12-12T08:34:19.7021092.csv', format='csv'\n",
+					", header=True)\n",
+					"\n",
+					"df_RM1_RES = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/PRDCUSTO/RM1_RESOURCE/2022/12/12/RM1_RESOURCE_2022-12-12T08:34:19.7521178.csv', format='csv'\n",
+					", header=True)\n",
+					"\n",
+					"df_RM_RES_TYPE = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/PRDREFSSCA/RM_RESOURCE_TYPE/2022/12/08/RM_RESOURCE_TYPE_2022-12-08T10:21:26.9255204.csv', format='csv'\n",
+					", header=True)\n",
+					"\n",
+					"df_ARM_MSISDN_RESOURCE = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/ARESOM/ARM_MSISDN_RESOURCE/2022/12/16/ARM_MSISDN_RESOURCE_2022-12-16T08:51:50.0170042.csv', format='csv'\n",
+					", header=True)"
+				],
+				"execution_count": 6
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Creación de Vistas temporales para trabajar con Spark SQL\r\n",
+					"\r\n",
+					"df_RM1_RES.createOrReplaceTempView(\"RM1_RESOURCE\")\r\n",
+					"df_RM_RES_TYPE.createOrReplaceTempView(\"RM_RESOURCE_TYPE\")\r\n",
+					"df_CM9_CONV_MIG_TRANS_KEY.createOrReplaceTempView(\"CM9_CONV_MIG_TRANS_KEY\")\r\n",
+					"df_ARM_MSISDN_RESOURCE.createOrReplaceTempView(\"ARM_MSISDN_RESOURCE\")"
+				],
+				"execution_count": 7
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Tabla DT_NUMEROS_CUARENTENA"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"Query: p01_DB_COPY_MCM_NUMEROS_CUARENTENA.sh"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"qstr=r\"\"\"SELECT A.RESOURCE_VALUE MDN , A.SYS_UPDATE_DATE FECHA_ACTUALIZA                                                   \n",
+					"            , A.RESOURCE_STATUS ID_ESTATUS                                                        \n",
+					"            , 'BLUE' COLOR                                                                        \n",
+					"            , current_timestamp() FECHA_PROCESO                                                                \n",
+					"        FROM RM1_RESOURCE as A                                                           \n",
+					"            ,RM_RESOURCE_TYPE as B                                                         \n",
+					"          WHERE 1 = 1                                                                                \n",
+					"         AND A.RESOURCE_TYPE_ID = B.RRT_ID\n",
+					"         AND A.RESOURCE_status = 'AGING'                                                           \n",
+					"         AND B.RRT_ID = 8                                                                                            \n",
+					"         AND A.SYS_UPDATE_DATE >= TO_TIMESTAMP(concat(current_date() -1, ' 00:00:00'),'yyyy-MM-dd HH:mm:ss')             \n",
+					"         AND A.SYS_UPDATE_DATE <= TO_TIMESTAMP(concat(current_date() -1, ' 23:59:59'),'yyyy-MM-dd HH:mm:ss') \"\"\"\n",
+					"\n",
+					"df_DT_NUMEROS_CUARENTENA = spark.sql(qstr)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"qstr=r\"\"\"SELECT A.RESOURCE_VALUE MDN , A.SYS_UPDATE_DATE FECHA_ACTUALIZA                                                   \r\n",
+					"            , A.RESOURCE_STATUS ID_ESTATUS                                                        \r\n",
+					"            , 'BLUE' COLOR                                                                        \r\n",
+					"            , current_timestamp() FECHA_PROCESO                                                                \r\n",
+					"        FROM RM1_RESOURCE as A                                                           \r\n",
+					"            ,RM_RESOURCE_TYPE as B                                                         \r\n",
+					"          WHERE 1 = 1                                                                                \r\n",
+					"         AND A.RESOURCE_TYPE_ID = B.RRT_ID\r\n",
+					"         AND A.RESOURCE_status = 'AGING'                                                           \r\n",
+					"         AND B.RRT_ID = 8      \r\n",
+					"         AND A.SYS_UPDATE_DATE >= '2022-12-07 00:00:00'\r\n",
+					"         AND A.SYS_UPDATE_DATE <= '2022-12-07 23:59:59'                                                                            \r\n",
+					" \"\"\"\r\n",
+					"\r\n",
+					"df_DT_NUMEROS_CUARENTENA = spark.sql(qstr)"
+				],
+				"execution_count": 8
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# display(df_DT_NUMEROS_CUARENTENA.limit(5))"
+				],
+				"execution_count": 9
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# df_DT_NUMEROS_CUARENTENA.count()"
+				],
+				"execution_count": 10
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Tabla MDNS_MIGRADOS_MCM"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"Query: p03_1_DB_COPY_MCM_DNS_MIGRADOS_NUMEROS_CUARENTENA.sh"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"qstr = r\"SELECT LGC_DN_NUM as MDN_MCM FROM CM9_CONV_MIG_TRANS_KEY WHERE LGC_DN_NUM IS NOT NULL\"\r\n",
+					"\r\n",
+					"df_MDNS_MIGRADOS_MCM = spark.sql(qstr)"
+				],
+				"execution_count": 11
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# display(df_MDNS_MIGRADOS_MCM.limit(5))"
+				],
+				"execution_count": 12
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# df_MDNS_MIGRADOS_MCM.count()"
+				],
+				"execution_count": 13
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Filter DT_NUMEROS_CUARENTENA\r\n",
+					"Query: p03_2_LIMPIA_MIGRADOS_NUMEROS_CUARENTENA.sh"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"df_DT_NUMEROS_CUARENTENA.createOrReplaceTempView(\"DT_NUMEROS_CUARENTENA\")\n",
+					"df_MDNS_MIGRADOS_MCM.createOrReplaceTempView(\"MDNS_MIGRADOS_MCM\")\n",
+					"\n",
+					"qstr = r\"\"\"SELECT * FROM DT_NUMEROS_CUARENTENA WHERE \n",
+					"                         MDN NOT IN (SELECT MDN_MCM FROM MDNS_MIGRADOS_MCM)\"\"\"\n",
+					"\n",
+					"df_DT_NUMEROS_CUARENTENA = spark.sql(qstr)"
+				],
+				"execution_count": 14
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# display(df_DT_NUMEROS_CUARENTENA.limit(5))"
+				],
+				"execution_count": 15
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# df_DT_NUMEROS_CUARENTENA.count() "
+				],
+				"execution_count": 16
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Tabla LISTA_CUARENTENA"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"Query: p04_SPOOL_NUMEROS_CUARENTENA.sh"
+				]
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"df_DT_NUMEROS_CUARENTENA.createOrReplaceTempView(\"DT_NUMEROS_CUARENTENA\")"
+				],
+				"execution_count": 17
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"qstr = r\"\"\"SELECT concat(MDN, '|',                                                            \n",
+					"       date_format(FECHA_ACTUALIZA, 'dd/MM/yyyy'), '|',                         \n",
+					"       ID_ESTATUS, '|',                                                     \n",
+					"       COLOR)                                                                  \n",
+					"  FROM DT_NUMEROS_CUARENTENA                                          \n",
+					"WHERE FECHA_ACTUALIZA >= TO_TIMESTAMP(concat(current_date() -1, ' 00:00:00'),'yyyy-MM-dd HH:mm:ss') \n",
+					"  AND FECHA_ACTUALIZA <= TO_TIMESTAMP(concat(current_date() -1, ' 23:59:59'),'yyyy-MM-dd HH:mm:ss') \n",
+					"\"\"\"\n",
+					"\n",
+					"df_LISTA_CUARENTENA_TXT = spark.sql(qstr)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"qstr = r\"\"\"SELECT MDN, FECHA_ACTUALIZA, ID_ESTATUS, COLOR                                                                \r\n",
+					"    FROM DT_NUMEROS_CUARENTENA                                          \r\n",
+					"    WHERE FECHA_ACTUALIZA >= '2022-12-07 00:00:00'\r\n",
+					"    AND   FECHA_ACTUALIZA <= '2022-12-07 23:59:59' \"\"\"\r\n",
+					"             \r\n",
+					"df_LISTA_CUARENTENA = spark.sql(qstr)"
+				],
+				"execution_count": 18
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# display(df_LISTA_CUARENTENA.limit(5))"
+				],
+				"execution_count": 19
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# df_LISTA_CUARENTENA.count()"
+				],
+				"execution_count": 20
+			},
+			{
+				"cell_type": "markdown",
+				"source": [
+					"Query: p01_SPOOL_REPORTE_CUARENTENA_MTX.sh\n",
+					"    "
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"qstr = r\"\"\"SELECT concat(RES_VALUE,'|',                                                                                                                                 \n",
+					"             (CASE                                                                                                                                                             \n",
+					"                            WHEN SYS_UPDATE_DATE IS NULL THEN date_format(SYS_CREATION_DATE, 'dd/MM/yyyy')        \n",
+					"                            ELSE date_format(SYS_UPDATE_DATE, 'dd/MM/yyyy')                                                           \n",
+					"                          END) ,'|' ,                                                                                         \n",
+					"             RES_STATUS ,'|',                                                                                                       \n",
+					"             'OCRE')                                                                                                                                                        \n",
+					"FROM ARM_MSISDN_RESOURCE                                                                                                                      \n",
+					"        WHERE RES_STATUS = 'AGING'                                                                                                                                 \n",
+					"        AND RES_TYPE_ID = 10                                                                                                                                         \n",
+					"AND SYS_UPDATE_DATE >= TO_TIMESTAMP(concat(current_date() -1, ' 00:00:00'),'yyyy-MM-dd HH:mm:ss')           \n",
+					"AND SYS_UPDATE_DATE <= TO_TIMESTAMP(concat(current_date() -1, ' 23:59:59'),'yyyy-MM-dd HH:mm:ss') \n",
+					"         \"\"\"\n",
+					"\n",
+					"df_LISTA_CUARENTENA_MTX=spark.sql(qstr)"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"qstr = r\"\"\"SELECT RES_VALUE,                                                                                                                               \r\n",
+					"            CASE WHEN SYS_UPDATE_DATE IS NULL THEN date_format(SYS_CREATION_DATE, 'dd/MM/yyyy')     \r\n",
+					"                ELSE date_format(SYS_UPDATE_DATE, 'dd/MM/yyyy')\r\n",
+					"                END,                                                                                                                                      \r\n",
+					"            RES_STATUS,                                                                                                       \r\n",
+					"            'OCRE' COLOR                                                                                                                                                     \r\n",
+					"        FROM ARM_MSISDN_RESOURCE                                                                                                                      \r\n",
+					"        WHERE RES_STATUS = 'AGING'                                                                                                                                 \r\n",
+					"        AND RES_TYPE_ID = 10\r\n",
+					"        AND SYS_UPDATE_DATE >= '2022-12-07 00:00:00'\r\n",
+					"        AND SYS_UPDATE_DATE <= '2022-12-07 23:59:59'       \r\n",
+					"        \"\"\"        \r\n",
+					"\r\n",
+					"df_LISTA_CUARENTENA_MTX=spark.sql(qstr)"
+				],
+				"execution_count": 21
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"# display(df_LISTA_CUARENTENA_MTX.limit(5))"
+				],
+				"execution_count": 22
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# df_LISTA_CUARENTENA_MTX.count()"
+				],
+				"execution_count": 23
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Unión de tablas\r\n",
+					"\r\n",
+					"df_LISTA_CUARENTENA = df_LISTA_CUARENTENA.union(df_LISTA_CUARENTENA_MTX)"
+				],
+				"execution_count": 24
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# display(df_LISTA_CUARENTENA.limit(5))"
+				],
+				"execution_count": 25
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df_LISTA_CUARENTENA.count()"
+				],
+				"execution_count": 26
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df_LISTA_CUARENTENA.printSchema()"
+				],
+				"execution_count": 30
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"\r\n",
+					"from pyspark.sql.functions import col\r\n",
+					"from pyspark.sql.types import IntegerType, TimestampType\r\n",
+					"\r\n",
+					"df_LISTA_CUARENTENA = df_LISTA_CUARENTENA.withColumn(\"MDN\",col(\"MDN\").cast(IntegerType())) \\\r\n",
+					"    .withColumn(\"FECHA_ACTUALIZA\",col(\"FECHA_ACTUALIZA\").cast(TimestampType()))"
+				],
+				"execution_count": 31
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df_LISTA_CUARENTENA.printSchema()"
+				],
+				"execution_count": 32
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Persistir información en Curated"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from datetime import datetime\r\n",
+					"\r\n",
+					"fecha = str(datetime.now().strftime('%Y%m%d'))\r\n",
+					"\r\n",
+					"contenedor = 'curated'\r\n",
+					"year = fecha[0:4]\r\n",
+					"month = fecha[4:6]\r\n",
+					"day = fecha[6:8]\r\n",
+					"nombre_tabla = 'dt_numeros_cuarentena'\r\n",
+					"\r\n",
+					"path = f\"abfss://{contenedor}@azuesdlsadl01.dfs.core.windows.net/Troya/{nombre_tabla}/{year}/{month}/{day}\"\r\n",
+					"\r\n",
+					"df_LISTA_CUARENTENA.write.mode('overwrite').parquet(path, compression=\"snappy\")"
+				],
+				"execution_count": 33
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
+			}
+		]
+	}
+}

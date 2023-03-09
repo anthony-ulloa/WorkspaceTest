@@ -1,0 +1,20 @@
+{
+	"name": "Collation Info",
+	"properties": {
+		"folder": {
+			"name": "TablasExternas"
+		},
+		"content": {
+			"query": "SELECT name, collation_name FROM sys.databases;",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "CDLEVQA",
+				"poolName": "CDLEVQA"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

@@ -1,0 +1,10 @@
+{
+	"name": "MPEABSazuesdlsadl01",
+	"properties": {
+		"privateLinkResourceId": "/subscriptions/cf5dca6f-5497-4f92-bba0-a7bb0371b601/resourceGroups/AZUESRG0ADL01/providers/Microsoft.Storage/storageAccounts/azuesdlsadl01",
+		"groupId": "blob",
+		"fqdns": [
+			"azuesdlsadl01.blob.core.windows.net"
+		]
+	}
+}

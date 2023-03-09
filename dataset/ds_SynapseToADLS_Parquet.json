@@ -1,0 +1,32 @@
+{
+	"name": "ds_SynapseToADLS_Parquet",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Update_ADLS_CSV_output",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"C_NameParquet": {
+				"type": "string"
+			},
+			"C_DirectoryFile": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@concat(dataset().C_NameParquet,'.','parquet')",
+					"type": "Expression"
+				},
+				"container": "archive"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

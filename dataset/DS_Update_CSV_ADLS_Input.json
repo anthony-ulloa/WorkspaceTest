@@ -1,0 +1,45 @@
+{
+	"name": "DS_Update_CSV_ADLS_Input",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Update_ADLS_CSV_input",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"C_Sink_TableOrFile": {
+				"type": "string"
+			},
+			"C_Source_DirectoryFile": {
+				"type": "string"
+			},
+			"C_LoadDate": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Update_CSV_Cuarated_CSV"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@concat(dataset().C_Sink_TableOrFile,'_',dataset().C_LoadDate,'.','csv')",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().C_Source_DirectoryFile",
+					"type": "Expression"
+				},
+				"container": "curated"
+			},
+			"columnDelimiter": "|",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

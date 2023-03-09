@@ -1,0 +1,20 @@
+{
+	"name": "DS_Oracle_SOMSDR_Source",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Oracle_SOMSDR_Source",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"C_P_KV_Service": "azueskvsadl01",
+				"C_P_KV_Secret": "synapsetooracleSOMSDRwithM24958"
+			}
+		},
+		"folder": {
+			"name": "OracleToSynapse_DataSets/Source_DataSets"
+		},
+		"annotations": [],
+		"type": "OracleTable",
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

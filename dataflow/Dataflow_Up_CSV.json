@@ -1,0 +1,67 @@
+{
+	"name": "Dataflow_Up_CSV",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Update_CSV_Curated_Output",
+						"type": "DatasetReference"
+					},
+					"name": "SourceUpDF"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Update_CSV_ADLS_Input",
+						"type": "DatasetReference"
+					},
+					"name": "sinkupdatecsv"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selectconvertaccents"
+				},
+				{
+					"name": "selectconvertspace"
+				},
+				{
+					"name": "derivedColumnfilename"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     C_DF_Sink_TableorFile as string,",
+				"     C_DF_C_Sink_DirectoryFile as string,",
+				"     C_DF_C_LoadDate as string",
+				"}",
+				"source(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> SourceUpDF",
+				"derivedColumnfilename select(mapColumn(",
+				"          each(match(1==1),",
+				"               replace(replace(replace(replace($$,'Ó','O'),'ï¿½',''),',',''),'�','O') = $$)",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectconvertaccents",
+				"selectconvertaccents select(mapColumn(",
+				"          each(match(1==1),",
+				"               rtrim($$) = $$)",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectconvertspace",
+				"SourceUpDF derive(FILE_NAME = concat($C_DF_Sink_TableorFile,'_',$C_DF_C_LoadDate,'.','csv'),",
+				"          CREATE_DATE = concat(left($C_DF_C_LoadDate,4),'-',right(left($C_DF_C_LoadDate,6),2),'-',right(left($C_DF_C_LoadDate,8),2))) ~> derivedColumnfilename",
+				"selectconvertspace sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     filePattern:(concat($C_DF_Sink_TableorFile,'_',$C_DF_C_LoadDate,'.','csv')),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sinkupdatecsv"
+			]
+		}
+	}
+}

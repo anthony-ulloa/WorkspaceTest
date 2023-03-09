@@ -1,0 +1,50 @@
+{
+	"name": "LSDynamicToVertica",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"type": "Vertica",
+		"description": "Linked service Dinamico para conectarse a vertica",
+		"parameters": {
+			"Server": {
+				"type": "String"
+			},
+			"Port": {
+				"type": "String"
+			},
+			"Database": {
+				"type": "String"
+			},
+			"User": {
+				"type": "String"
+			},
+			"CCKVService": {
+				"type": "String"
+			},
+			"CCKVSecret": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"typeProperties": {
+			"connectionString": "Server=@{linkedService().Server};Port=@{linkedService().Port};Database=@{linkedService().Database};UID=@{linkedService().User};",
+			"pwd": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "azueslskvoadl01",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"C_C_KV_Service": {
+							"value": "@linkedService().CCKVService",
+							"type": "Expression"
+						}
+					}
+				},
+				"secretName": "@{linkedService().CCKVSecret}"
+			}
+		},
+		"connectVia": {
+			"referenceName": "IntegrationRuntime1",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

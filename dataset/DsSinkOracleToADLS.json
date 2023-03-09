@@ -1,0 +1,79 @@
+{
+	"name": "DsSinkOracleToADLS",
+	"properties": {
+		"description": "Dataset para bases de datos oracle",
+		"linkedServiceName": {
+			"referenceName": "LSDynamicToOracle",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"HostName": {
+					"value": "@dataset().P_HostName",
+					"type": "Expression"
+				},
+				"PortNumber": {
+					"value": "@dataset().P_PortNumber",
+					"type": "Expression"
+				},
+				"ServiceName": {
+					"value": "@dataset().P_ServiceName",
+					"type": "Expression"
+				},
+				"UserName": {
+					"value": "@dataset().P_UserName",
+					"type": "Expression"
+				},
+				"CCKVService": {
+					"value": "@dataset().C_C_Source_KV_Service",
+					"type": "Expression"
+				},
+				"CCKVSecret": {
+					"value": "@dataset().C_C_Source_KV_Secret",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"C_C_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"C_C_Source_TableOrFile": {
+				"type": "string"
+			},
+			"C_C_Source_KV_Service": {
+				"type": "string"
+			},
+			"C_C_Source_KV_Secret": {
+				"type": "string"
+			},
+			"P_HostName": {
+				"type": "string"
+			},
+			"P_PortNumber": {
+				"type": "string"
+			},
+			"P_ServiceName": {
+				"type": "string"
+			},
+			"P_UserName": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Generics"
+		},
+		"annotations": [],
+		"type": "OracleTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().C_C_Source_SchemaOrPath",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().C_C_Source_TableOrFile",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

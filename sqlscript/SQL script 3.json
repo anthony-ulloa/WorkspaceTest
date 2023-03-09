@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 3",
+	"properties": {
+		"content": {
+			"query": "SELECT TOP (100) [ProcessName]\n,[Source_ServiceType]\n,[Source_ServiceName]\n,[Source_KV_Service]\n,[Source_KV_Secret]\n,[Source_DBOrContainer]\n,[Source_SchemaOrPath]\n,[Source_TableOrFile]\n,[Source_Type]\n,[Sink_ServiceType]\n,[Sink_ServiceName]\n,[Sink_KV_Service]\n,[Sink_KV_Secret]\n,[Sink_DBOrContainer]\n,[Sink_SchemaOrPath]\n,[Sink_TableOrFile]\n,[Sink_Type]\n,[IsIncremental]\n,[Active]\n,[Order]\n,[ProcessType]\n,[Source_DirectoryFile]\n,[Sink_DirectoryFile]\n,[LoadDate]\n,[Source_Query]\n,[Source_LS_UserName]\n,[Sink_LS_UserName]\n,[ID]\n,[Source_Host]\n,[Sink_Host]\n,[Source_Port]\n,[Sink_Port]\n,[Source_DomainName]\n,[Sink_DomainName]\n,[Source_URL]\n,[Sink_URL]\n,[Source_AccountName]\n,[Sink_AccountName]\n,[Source_EndpointSuffix]\n,[Sink_EndpointSuffix]\n,[Source_Warehouse]\n,[Sink_Warehouse]\n,[Source_Role]\n,[Sink_Role]\n FROM [dbo].[MigrationTable] \nWHERE ProcessType = 'Troya'\n WHERE Source_TableOrFile = 'RM_RESOURCE_TYPE'\n\nUPDATE dbo.MigrationTable\nSET Active = 0\nWHERE ID in (935, 936)\n\nSELECT trunc(sysdate+1)-(1/(24*60*60)) FROM dbo.MigrationTable;\n\n--------------------------\nUPDATE dbo.MigrationTable\nSET Source_Query = 'SELECT * FROM PRDCUSTO.RM1_RESOURCE WHERE TRUNC(SYS_UPDATE_DATE)>= TRUNC(SYSDATE-1) AND TRUNC(SYS_UPDATE_DATE) <= TRUNC(SYSDATE)-(1/(24*60*60))'\nWHERE ID = 599; --RM1_RESOURCE\n--------------------------\nUPDATE dbo.MigrationTable\nSET Source_Query = 'SELECT * FROM PRDREFSSCA.RM_RESOURCE_TYPE'\nWHERE ID = 584;\n--------------------------\nUPDATE dbo.MigrationTable\nSET Source_Query = 'SELECT * FROM PRDCUSTO.CM9_CONV_MIG_TRANS_KEY'\nWHERE ID = 739;\n--------------------------\nUPDATE dbo.MigrationTable\nSET Source_Query = 'SELECT * FROM ARESOM.ARM_MSISDN_RESOURCE WHERE TRUNC(SYS_UPDATE_DATE)>= TRUNC(SYSDATE-1) AND TRUNC(SYS_UPDATE_DATE) <= TRUNC(SYSDATE)-(1/(24*60*60))'\nWHERE ID = 760;\n\nSELECT ISNULL(MAX(ID) + 1, 0) FROM [dbo].[MigrationTable] ",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "Landing",
+				"poolName": "Landing"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

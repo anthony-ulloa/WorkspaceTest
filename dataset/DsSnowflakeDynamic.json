@@ -1,0 +1,86 @@
+{
+	"name": "DsSnowflakeDynamic",
+	"properties": {
+		"description": "Data set para mapear las tablas de sowflake que se van a copiar al data lake de manera dinamica.",
+		"linkedServiceName": {
+			"referenceName": "LSDynamicToSnowflake",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"AccountName": {
+					"value": "@dataset().AccountName",
+					"type": "Expression"
+				},
+				"UserName": {
+					"value": "@dataset().UserName",
+					"type": "Expression"
+				},
+				"Database": {
+					"value": "@dataset().Database",
+					"type": "Expression"
+				},
+				"Warehosue": {
+					"value": "@dataset().Warehosue",
+					"type": "Expression"
+				},
+				"Role": {
+					"value": "@dataset().Role",
+					"type": "Expression"
+				},
+				"CCKVService": {
+					"value": "@dataset().CCKVService",
+					"type": "Expression"
+				},
+				"CCKVSecret": {
+					"value": "@dataset().CCKVSecret",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"CCKVService": {
+				"type": "string"
+			},
+			"CCKVSecret": {
+				"type": "string"
+			},
+			"UserName": {
+				"type": "string"
+			},
+			"C_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"C_Source_TableOrFile": {
+				"type": "string"
+			},
+			"AccountName": {
+				"type": "string"
+			},
+			"Database": {
+				"type": "string"
+			},
+			"Warehosue": {
+				"type": "string"
+			},
+			"Role": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Snowflake"
+		},
+		"annotations": [],
+		"type": "SnowflakeTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().C_Source_SchemaOrPath",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().C_Source_TableOrFile",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

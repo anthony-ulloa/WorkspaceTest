@@ -1,0 +1,1075 @@
+{
+	"name": "VentasAmdocs Queries 001",
+	"properties": {
+		"folder": {
+			"name": "VentasAmdocs"
+		},
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "AZUESSYPDDL00",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"runAsWorkspaceSystemIdentity": false,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "ffd5c34e-4fb2-49d5-9ed9-e0cf8bc56caa"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/cf5dca6f-5497-4f92-bba0-a7bb0371b601/resourceGroups/AZUESRG0ADL02/providers/Microsoft.Synapse/workspaces/azuessywadl02/bigDataPools/AZUESSYPDDL00",
+				"name": "AZUESSYPDDL00",
+				"type": "Spark",
+				"endpoint": "https://azuessywadl02.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/AZUESSYPDDL00",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net",
+					"authHeader": null
+				},
+				"sparkVersion": "3.2",
+				"nodeCount": 10,
+				"cores": 4,
+				"memory": 28,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Ventas Amdocs\r\n",
+					"## Queries 001a y 001b"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Importación de librerias\r\n",
+					"\r\n",
+					"from pyspark.sql import DataFrame\r\n",
+					"from pyspark.sql import functions as F\r\n",
+					"from pyspark.sql.functions import udf, split, col, explode, current_timestamp"
+				],
+				"execution_count": 107
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Querie001a"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### TBL_TMP_OMS_TBORDER_DYNAMIC_ATTRS"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"df_TBORDER = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/PRDOMSOWN/TBORDER/2022/12/14/TBORDER_2022-12-14T07:14:12.7115271.csv', format='csv'\r\n",
+					", header=True)\r\n",
+					"df_TBORDER.count()"
+				],
+				"execution_count": 108
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(\r\n",
+					"    df_TBORDER\r\n",
+					"    .where(df_TBORDER.DYNAMIC_ATTRS.isNotNull())\r\n",
+					"    .withColumn('ATTRS_SPLITED',  split(col('DYNAMIC_ATTRS'), ';'))         # Split by delimiter ';'\r\n",
+					"    .withColumn('EXPLODED', explode(col('ATTRS_SPLITED')))                  # Explode the splitted column into rows\r\n",
+					"    .withColumn('SPLITED', split(col('EXPLODED'), '='))                     # Split based on delimiter '='\r\n",
+					"    .withColumn('NAME', col('SPLITED').getItem(0))\r\n",
+					"    .withColumn('VALUE', col('SPLITED').getItem(1))\r\n",
+					"    .withColumn('CTRL_INGEST_DATE', current_timestamp())\r\n",
+					"    .select('ORDER_UNIT_ID', 'NAME', 'VALUE', 'CTRL_INGEST_DATE')   #       # CTRL_SOURCE_SYSTEM, CTRL_PROCESS_NAME, CTRL_START_DATE_PARAM, CTRL_END_DATE_PARAM -- Que pasa con estas columnas de control de Vertica?\r\n",
+					"    .limit(10))\r\n",
+					"\r\n",
+					"    \r\n",
+					"    \r\n",
+					"    # AND TRUNC(OMS_TBORDER.CTRL_INGEST_DATE)\r\n",
+					"    # BETWEEN (SELECT TRUNC(FECHA_INICIO) FROM SCH_MST_BLUE.TBL_CONF_GET_CONDITION WHERE ESQUEMA = 'SCH_PSTG_BLUE' AND TRIM(TABLA) = 'OMS_TBORDER')\r\n",
+					"\t# AND (SELECT TRUNC(FECHA_FIN)    FROM SCH_MST_BLUE.TBL_CONF_GET_CONDITION WHERE ESQUEMA = 'SCH_PSTG_BLUE' AND TRIM(TABLA) = 'OMS_TBORDER')\r\n",
+					"    #.where(date_trunc('day', orderDf.CTRL_INGEST_DATE)\r\n",
+					"    #.between(date_trunc('day',TBL_CONF_GET_CONDITION.FECHA_INICIO), date_trunc('day',TBL_CONF_GET_CONDITION.FECHA_FIN)))"
+				],
+				"execution_count": 109
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"df_TBL_TMP_OMS_TBORDER_DYNAMIC_ATTRS = df_TBORDER \\\r\n",
+					"    .where(df_TBORDER.DYNAMIC_ATTRS.isNotNull()) \\\r\n",
+					"    .withColumn('ATTRS_SPLITED',  split(col('DYNAMIC_ATTRS'), ';')) \\\r\n",
+					"    .withColumn('EXPLODED', explode(col('ATTRS_SPLITED'))) \\\r\n",
+					"    .withColumn('SPLITED', split(col('EXPLODED'), '=')) \\\r\n",
+					"    .withColumn('NAME', col('SPLITED').getItem(0))  \\\r\n",
+					"    .withColumn('VALUE', col('SPLITED').getItem(1)) \\\r\n",
+					"    .withColumn('CTRL_INGEST_DATE', current_timestamp()) \\\r\n",
+					"    .select('ORDER_UNIT_ID', 'NAME', 'VALUE', 'CTRL_INGEST_DATE')     #  'CTRL_SOURCE_SYSTEM' , 'CTRL_PROCESS_NAME' , 'CTRL_START_DATE_PARAM', 'CTRL_END_DATE_PARAM'  -- Que pasa con estas columnas de control de Vertica?\r\n",
+					"\r\n",
+					"\t\r\n",
+					"    # AND TRUNC(OMS_TBORDER_ACTION.CTRL_INGEST_DATE)\r\n",
+					"\t# BETWEEN (SELECT TRUNC(FECHA_INICIO) FROM SCH_MST_BLUE.TBL_CONF_GET_CONDITION WHERE ESQUEMA = 'SCH_PSTG_BLUE' AND TRIM(TABLA) = 'OMS_TBORDER_ACTION')\r\n",
+					"\t# AND (SELECT TRUNC(FECHA_FIN)    FROM SCH_MST_BLUE.TBL_CONF_GET_CONDITION WHERE ESQUEMA = 'SCH_PSTG_BLUE' AND TRIM(TABLA) = 'OMS_TBORDER_ACTION')\r\n",
+					"    #.where(date_trunc('day', orderDf.CTRL_INGEST_DATE)\r\n",
+					"    #.between(date_trunc('day',TBL_CONF_GET_CONDITION.FECHA_INICIO), date_trunc('day',TBL_CONF_GET_CONDITION.FECHA_FIN)))"
+				],
+				"execution_count": 111
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(df_TBL_TMP_OMS_TBORDER_DYNAMIC_ATTRS.limit(8))"
+				],
+				"execution_count": 112
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### TBL_TMP_OMS_TBORDER_ACTION_DYNAMIC_ATTRS"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df_TBORDER_ACTION = spark.read.load('abfss://raw@azuesdlsadl01.dfs.core.windows.net/General/PRDOMSOWN/TBORDER_ACTION/2022/12/14/TBORDER_ACTION_2022-12-14T07:14:06.3190825.csv', format='csv'\r\n",
+					", header=True)\r\n",
+					"df_TBORDER_ACTION.count()"
+				],
+				"execution_count": 113
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(\r\n",
+					"    df_TBORDER_ACTION\r\n",
+					"    .where(df_TBORDER_ACTION.DYNAMIC_ATTRS.isNotNull()) \\\r\n",
+					"    .withColumn('ATTRS_SPLITED',  split(col('DYNAMIC_ATTRS'), ';'))         # Split by delimiter ';'\r\n",
+					"    .withColumn('EXPLODED', explode(col('ATTRS_SPLITED')))                  # Explode the splitted column into rows\r\n",
+					"    .withColumn('SPLITED', split(col('EXPLODED'), '='))                     # Split based on delimiter '='\r\n",
+					"    .withColumn('NAME', col('SPLITED').getItem(0))\r\n",
+					"    .withColumn('VALUE', col('SPLITED').getItem(1))\r\n",
+					"    .withColumn('CTRL_INGEST_DATE', current_timestamp())\r\n",
+					"    .select('ORDER_UNIT_ID', 'NAME', 'VALUE', 'CTRL_INGEST_DATE')   #'CTRL_SOURCE_SYSTEM' , 'CTRL_PROCESS_NAME' , 'CTRL_START_DATE_PARAM', 'CTRL_END_DATE_PARAM')\r\n",
+					"    .limit(10))\r\n",
+					"\r\n",
+					"    # .where(date_trunc('day', orderActionDf.CTRL_INGEST_DATE )\r\n",
+					"    # .between(date_trunc('day',TBL_CONF_GET_CONDITION.FECHA_INICIO), date_trunc('day',TBL_CONF_GET_CONDITION.FECHA_FIN)))"
+				],
+				"execution_count": 114
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df_TBL_TMP_OMS_TBORDER_ACTION_DYNAMIC_ATTRS = df_TBORDER_ACTION \\\r\n",
+					"    .where(df_TBORDER_ACTION.DYNAMIC_ATTRS.isNotNull()) \\\r\n",
+					"    .withColumn('ATTRS_SPLITED',  split(col('DYNAMIC_ATTRS'), ';')) \\\r\n",
+					"    .withColumn('EXPLODED', explode(col('ATTRS_SPLITED'))) \\\r\n",
+					"    .withColumn('SPLITED', split(col('EXPLODED'), '=')) \\\r\n",
+					"    .withColumn('NAME', col('SPLITED').getItem(0)) \\\r\n",
+					"    .withColumn('VALUE', col('SPLITED').getItem(1)) \\\r\n",
+					"    .withColumn('CTRL_INGEST_DATE', current_timestamp()) \\\r\n",
+					"    .select('ORDER_UNIT_ID', 'NAME', 'VALUE', 'CTRL_INGEST_DATE')   #'CTRL_SOURCE_SYSTEM' , 'CTRL_PROCESS_NAME' , 'CTRL_START_DATE_PARAM', 'CTRL_END_DATE_PARAM'\r\n",
+					"\r\n",
+					"    # .where(date_trunc('day', df_TBORDER_ACTION.CTRL_INGEST_DATE )\r\n",
+					"    # .between(date_trunc('day',TBL_CONF_GET_CONDITION.FECHA_INICIO), date_trunc('day',TBL_CONF_GET_CONDITION.FECHA_FIN)))"
+				],
+				"execution_count": 115
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(df_TBL_TMP_OMS_TBORDER_ACTION_DYNAMIC_ATTRS.limit(8))"
+				],
+				"execution_count": 116
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# Querie001b"
+				]
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### TABLE SCH_PSTG_BLUE.OMS_TBORDER_DYNAMIC_ATTRS"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df_OMS_TBORDER_DYNAMIC_ATTRS = df_TBL_TMP_OMS_TBORDER_DYNAMIC_ATTRS"
+				],
+				"execution_count": 117
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### TABLE SCH_MST_BLUE.TBL_MTL_ORDER_ATTRS"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"def add_missing_columns_to_df(df: DataFrame, necessary_columns: list, value=None) -> DataFrame:\r\n",
+					"    missing_columns = [col for col in necessary_columns if col not in df.columns]\r\n",
+					"    for col in missing_columns:\r\n",
+					"        df = df.withColumn(col, F.lit(value))\r\n",
+					"    return df"
+				],
+				"execution_count": 118
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"columns = [ 'ORDER_UNIT_ID', \"CreditClass\", \"ICASstatus\", \"ICASstatusReason\", \"ICASunifiedPolicyTransactionId\", \"NumberOfOrders\", \"StoreDeliveryType\", \r\n",
+					"\"StoreID\", \"StoreName\", \"defaultPcnCategory\", \"defaultPcnID\", \"defaultPcnName\", \"fwaMode\", \"fechaInicoDateForCss\", \"idOrderASD\", \"isAutopayRequired\",\r\n",
+					"\"policyDetailsForOrder\", \"unifiedCreditTransactionID\"]\r\n",
+					"\r\n",
+					"df_TBL_MTL_ORDER_ATTRS = df_TBL_TMP_OMS_TBORDER_DYNAMIC_ATTRS.groupby('ORDER_UNIT_ID').pivot('NAME').agg(F.max('VALUE'))\r\n",
+					"\r\n",
+					"df_TBL_MTL_ORDER_ATTRS = add_missing_columns_to_df(df_TBL_MTL_ORDER_ATTRS, columns) \\\r\n",
+					"                        .select(columns)"
+				],
+				"execution_count": 119
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(df_TBL_MTL_ORDER_ATTRS.limit(5))"
+				],
+				"execution_count": 120
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"### TABLE SCH_PSTG_BLUE.OMS_TBORDER_ACTION_DYNAMIC_ATTRS"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df_OMS_TBORDER_ACTION_DYNAMIC_ATTRS = df_TBL_TMP_OMS_TBORDER_ACTION_DYNAMIC_ATTRS"
+				],
+				"execution_count": 121
+			},
+			{
+				"cell_type": "markdown",
+				"metadata": {
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"## TABLE SCH_MST_BLUE.TBL_MTL_ORDER_ACTION_ATTRS"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql.types import StringType, ArrayType\r\n",
+					"\r\n",
+					"@udf (returnType=ArrayType(ArrayType(StringType())))\r\n",
+					"def pairing(string):\r\n",
+					"    \"\"\"A partir de un string con atributos separados por comas, retorna un array\r\n",
+					"      con arrays de pares anidados\r\n",
+					"      input: 'CTN,10587445,DOWN-ACC,0.00,FDP,0.00'\r\n",
+					"      output: [['CTN', '10587445'], ['DOWN-ACC', '0.00'], ['FDP', '0.00']]\r\n",
+					"      \"\"\"\r\n",
+					"    splited = string.split(',')\r\n",
+					"    return [splited[i:i + 2] for i in range(0, len(splited), 2)]"
+				],
+				"execution_count": 149
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# dfPolicy = df_TBL_TMP_OMS_TBORDER_ACTION_DYNAMIC_ATTRS.filter(\"NAME = 'selectedPolicyDetail'\") \\\r\n",
+					"#     .withColumn(\"P\", pairing(col(\"VALUE\"))) \\\r\n",
+					"#     .withColumn('EXP', F.explode('P')) \\\r\n",
+					"#     .withColumn('POLICY', F.col('EXP').getItem(0)) \\\r\n",
+					"#     .withColumn('POLICY_VALUE', F.col('EXP').getItem(1)) \\\r\n",
+					"#     .filter(\"POLICY in ('CTN', 'DEP-SVC','DOWN-EQ')\") \\\r\n",
+					"#     .select('ORDER_UNIT_ID', 'POLICY', 'POLICY_VALUE')"
+				],
+				"execution_count": 199
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"dfPolicy = df_TBL_TMP_OMS_TBORDER_ACTION_DYNAMIC_ATTRS.filter(\"NAME = 'selectedPolicyDetail'\") \\\r\n",
+					"    .withColumn(\"P\", pairing(col(\"VALUE\"))) \\\r\n",
+					"    .withColumn('EXP', F.explode('P')) \\\r\n",
+					"    .withColumn('POLICY', F.col('EXP').getItem(0)) \\\r\n",
+					"    .withColumn('POLICY_VALUE', F.col('EXP').getItem(1)) \\\r\n",
+					"    .filter(\"POLICY in ('CTN', 'DEP-SVC','DOWN-EQ')\") \\\r\n",
+					"    .groupby('ORDER_UNIT_ID').pivot('POLICY').agg(F.max('POLICY_VALUE')) \\\r\n",
+					"    .withColumnRenamed('CTN', 'PolicyDetail_CTN') \\\r\n",
+					"    .withColumnRenamed('DEP-SVC', 'PolicyDetail_DEP-SVC') \\\r\n",
+					"    .withColumnRenamed('DOWN-EQ', 'PolicyDetail_DOWN-EQ')"
+				],
+				"execution_count": 215
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(dfPolicy.limit(5))"
+				],
+				"execution_count": 224
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"dfNoPolicy = df_TBL_TMP_OMS_TBORDER_ACTION_DYNAMIC_ATTRS \\\r\n",
+					"            .groupby('ORDER_UNIT_ID').pivot('NAME').agg(F.max('VALUE')) \r\n",
+					""
+				],
+				"execution_count": 225
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(dfNoPolicy.limit(2))"
+				],
+				"execution_count": 226
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"df_TBL_MTL_ORDER_ACTION_ATTRS = dfNoPolicy.join(dfPolicy, 'ORDER_UNIT_ID', 'left')"
+				],
+				"execution_count": 227
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(df_TBL_MTL_ORDER_ACTION_ATTRS.where('PolicyDetail_CTN IS NOT NULL').limit(5))"
+				],
+				"execution_count": 230
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"columns = [\"Down_Payment\",\"FULFILL_CALL_FAILED\", \"inventoryItemCode\", \"inventoryOrganizationCode\", \"inventoryReservationId\", \"isLineApprovedIndicator\", \r\n",
+					"\"isNewProvide\", \"isPolicyRequiredIndicator\", \"line_Id\", \"PPBID\", \"ProductApID\", \"removeComponetRequestId\", \"selectedPolicyDetail\", \"PolicyDetail_CTN\", \r\n",
+					"\"PolicyDetail_DEP-SVC\", \"PolicyDetail_DOWN-EQ\", \"selectedPolicyID\", \"StoreDeliveryType\", \"StoreID\", \"StoreName\"]\r\n",
+					"\r\n",
+					"df_TBL_MTL_ORDER_ACTION_ATTRS = df_TBL_MTL_ORDER_ACTION_ATTRS.select(columns)"
+				],
+				"execution_count": 231
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"display(df_TBL_MTL_ORDER_ACTION_ATTRS.select(columns).limit(10))"
+				],
+				"execution_count": 232
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"Error. esta celda existe para parar acá el notebook"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# dfFinal.limit(50).write.mode('overwrite').saveAsTable(\"saveAsTableTEST\")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.catalog.listDatabases()"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.catalog.listTables('default')"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.sql('show databases').show()"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"SELECT * FROM saveastabletest"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"DESCRIBE DATABASE EXTENDED default"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# sc.getConf().getAll()\r\n",
+					"print(spark.sparkContext.getConf().get(\"spark.sql.warehouse.dir\"))\r\n",
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"CREATE DATABASE IF NOT EXISTS pathtestroot LOCATION '/'"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"DESCRIBE DATABASE EXTENDED pathtestroot"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"USE pathtestroot"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"dftest = dfFinal.select('ORDER_UNIT_ID')"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# managed \r\n",
+					"dftest.limit(20).write.mode('overwrite').saveAsTable(\"rootmanaged\")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"# external\r\n",
+					"dftest.limit(20).write.mode('overwrite').option(\"path\", \"/externalmanaged\").saveAsTable(\"rootexternal\")"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.catalog.listTables('pathtestroot')"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					""
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.catalog.listDatabases()"
+				]
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "python"
+					}
+				},
+				"source": [
+					"%%pyspark\r\n",
+					"spark.sql(\"DROP DATABASE IF EXISTS pathtest CASCADE\")"
+				]
+			}
+		]
+	}
+}

@@ -1,0 +1,20 @@
+{
+	"name": "Creacion Master Key",
+	"properties": {
+		"folder": {
+			"name": "TablasExternas"
+		},
+		"content": {
+			"query": "-- Sintaxis\n-- CREATE MASTER KEY [ ENCRYPTION BY PASSWORD ='password' ]\n-- [ ; ]\n\nUSE CDVLEVQA;\n\n-- Creación de Master Key\nCREATE MASTER KEY ENCRYPTION BY PASSWORD = 'M4st3rK3yD3Pru3b4SDFFNSFNX$%#$nisndins#$$@#NFwenf#$';\n\n-- Para revisar las master keys en la BD\nSELECT * FROM sys.symmetric_keys;",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "CDLEVQA",
+				"poolName": "CDLEVQA"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

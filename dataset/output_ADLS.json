@@ -1,0 +1,65 @@
+{
+	"name": "output_ADLS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "azuessywadl01-WorkspaceDefaultStorage",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"C_Source_TableOrFile": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "ADLSToSynase_DataSets/Temp_DataSets"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@concat(dataset().C_Source_TableOrFile,'.','parquet')",
+					"type": "Expression"
+				},
+				"fileSystem": "input"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": [
+			{
+				"name": "STOCK_KEEPING_UNIT",
+				"type": "UTF8"
+			},
+			{
+				"name": "NAME",
+				"type": "UTF8"
+			},
+			{
+				"name": "SERIAL_NUMBER",
+				"type": "UTF8"
+			},
+			{
+				"name": "STATUS",
+				"type": "UTF8"
+			},
+			{
+				"name": "TYPE",
+				"type": "UTF8"
+			},
+			{
+				"name": "CREATED_DATE",
+				"type": "UTF8"
+			},
+			{
+				"name": "MODIFIED_DATE",
+				"type": "UTF8"
+			},
+			{
+				"name": "USER",
+				"type": "UTF8"
+			}
+		]
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

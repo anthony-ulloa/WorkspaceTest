@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 1",
+	"properties": {
+		"content": {
+			"query": "SELECT * FROM MIGRATIONTABLE WHERE SOURCE_TABLEORFILE='TBORDER'\n\nSELECT * FROM MIGRATIONTABLE WHERE PROCESSTYPE='VentasAmdocs' AND ACTIVE=1\n\nUPDATE MIGRATIONTABLE \nSET  ACTIVE=1\n WHERE PROCESSTYPE='VentasAmdocs'\n AND SOURCE_TABLEORFILE='TBORDER'",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "Landing",
+				"poolName": "Landing"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

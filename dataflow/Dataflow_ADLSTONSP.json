@@ -1,0 +1,45 @@
+{
+	"name": "Dataflow_ADLSTONSP",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ADLSTOSNP_Output",
+						"type": "DatasetReference"
+					},
+					"name": "sourceADLSTOSNP"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "SNP_Input",
+						"type": "DatasetReference"
+					},
+					"name": "sinkADLSTOSNP"
+				}
+			],
+			"transformations": [],
+			"scriptLines": [
+				"source(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> sourceADLSTOSNP",
+				"sourceADLSTOSNP sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     staged: true,",
+				"     allowCopyCommand: true,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sinkADLSTOSNP"
+			]
+		}
+	}
+}

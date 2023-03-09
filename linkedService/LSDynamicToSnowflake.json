@@ -1,0 +1,57 @@
+{
+	"name": "LSDynamicToSnowflake",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"description": "Link service dinamico para conectar a una base de datos en snowflake dinamicamente",
+		"parameters": {
+			"AccountName": {
+				"type": "string"
+			},
+			"UserName": {
+				"type": "string"
+			},
+			"Database": {
+				"type": "string"
+			},
+			"Warehosue": {
+				"type": "string"
+			},
+			"Role": {
+				"type": "string"
+			},
+			"CCKVService": {
+				"type": "string"
+			},
+			"CCKVSecret": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Snowflake",
+		"typeProperties": {
+			"authenticationType": "Basic",
+			"connectionString": "jdbc:snowflake://@{linkedService().AccountName}.snowflakecomputing.com/?user=@{linkedService().UserName}&db=@{linkedService().Database}&warehouse=@{linkedService().Warehosue}&role=@{linkedService().Role}",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "azueslskvoadl01",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"C_C_KV_Service": {
+							"value": "@linkedService().CCKVService",
+							"type": "Expression"
+						}
+					}
+				},
+				"secretName": {
+					"value": "@linkedService().CCKVSecret",
+					"type": "Expression"
+				}
+			}
+		},
+		"connectVia": {
+			"referenceName": "AutoResolveIntegrationRuntime",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

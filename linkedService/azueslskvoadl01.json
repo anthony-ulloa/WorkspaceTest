@@ -1,0 +1,17 @@
+{
+	"name": "azueslskvoadl01",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"parameters": {
+			"C_C_KV_Service": {
+				"type": "string",
+				"defaultValue": "azueskvsadl01"
+			}
+		},
+		"annotations": [],
+		"type": "AzureKeyVault",
+		"typeProperties": {
+			"baseUrl": "https://@{linkedService().C_C_KV_Service}.vault.azure.net/"
+		}
+	}
+}

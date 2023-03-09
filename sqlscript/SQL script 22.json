@@ -1,0 +1,17 @@
+{
+	"name": "SQL script 22",
+	"properties": {
+		"content": {
+			"query": "--Uncomment the 4 lines below to create a stored procedure for data pipeline orchestration​\n--CREATE PROC bulk_load_LogicalResourceDeactivated\n--AS\n--BEGIN\nCOPY INTO dbo.LogicalResourceDeactivated\n(Description 1, LogicalResourceDeactivatedId 2, Name 3, Color 4)\nFROM 'https://azuesdlsadl01.dfs.core.windows.net/trusted/Troya/DT_NUMEROS_CUARENTENA/2023/02/10/part-00000-tid-2378965237607442311-57bd7930-3f49-4e51-98de-4fab619a1b9a-134-1-c000.snappy.parquet'\nWITH\n(\n\tFILE_TYPE = 'PARQUET'\n\t,MAXERRORS = 0\n\t,COMPRESSION = 'snappy'\n\t,CREDENTIAL = ( IDENTITY = 'Managed Identity' )\n)\n--END\nGO\n\nSELECT TOP 100 * FROM dbo.LogicalResourceDeactivated\nGO",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "CDLEVQA",
+				"poolName": "CDLEVQA"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

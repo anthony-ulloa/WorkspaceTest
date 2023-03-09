@@ -1,0 +1,20 @@
+{
+	"name": "DS_init_Output_Synapse",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Synapse_init",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "ADLSToSynase_DataSets/Sink_DataSets"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "t1"
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

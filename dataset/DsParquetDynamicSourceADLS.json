@@ -1,0 +1,65 @@
+{
+	"name": "DsParquetDynamicSourceADLS",
+	"properties": {
+		"description": "Dataset para archivos parquet",
+		"linkedServiceName": {
+			"referenceName": "LSDynamicToADSL",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"CCKVService": {
+					"value": "@dataset().P_CCKVService",
+					"type": "Expression"
+				},
+				"CCKVSecret": {
+					"value": "@dataset().P_CCKVSecret",
+					"type": "Expression"
+				},
+				"URL": {
+					"value": "@dataset().P_URL",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"P_CCKVService": {
+				"type": "string"
+			},
+			"P_CCKVSecret": {
+				"type": "string"
+			},
+			"P_URL": {
+				"type": "string"
+			},
+			"P_File": {
+				"type": "string"
+			},
+			"P_Path": {
+				"type": "string"
+			},
+			"P_Directory": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Generics"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@concat(dataset().P_Directory,'/',formatDateTime(convertFromUtc(utcnow(),'Pacific Standard Time (Mexico)'),'yyyy'),'/',formatDateTime(convertFromUtc(utcnow(),'Pacific Standard Time (Mexico)'),'MM'),'/',formatDateTime(convertFromUtc(utcnow(),'Pacific Standard Time (Mexico)'),'dd'))",
+					"type": "Expression"
+				},
+				"fileSystem": {
+					"value": "@dataset().P_Path",
+					"type": "Expression"
+				}
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

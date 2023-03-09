@@ -1,0 +1,78 @@
+{
+	"name": "DsSinkVerticaToADLS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LSDynamicToVertica",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"Server": {
+					"value": "@dataset().Server",
+					"type": "Expression"
+				},
+				"Port": {
+					"value": "@dataset().Port",
+					"type": "Expression"
+				},
+				"Database": {
+					"value": "@dataset().Database",
+					"type": "Expression"
+				},
+				"User": {
+					"value": "@dataset().User",
+					"type": "Expression"
+				},
+				"CCKVService": {
+					"value": "@dataset().CCKVService",
+					"type": "Expression"
+				},
+				"CCKVSecret": {
+					"value": "@dataset().CCKVSecret",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"C_C_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"C_C_Source_TableOrFile": {
+				"type": "string"
+			},
+			"Server": {
+				"type": "string"
+			},
+			"Port": {
+				"type": "string"
+			},
+			"Database": {
+				"type": "string"
+			},
+			"User": {
+				"type": "string"
+			},
+			"CCKVService": {
+				"type": "string"
+			},
+			"CCKVSecret": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "Generics"
+		},
+		"annotations": [],
+		"type": "VerticaTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().C_C_Source_SchemaOrPath",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().C_C_Source_TableOrFile",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

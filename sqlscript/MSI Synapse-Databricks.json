@@ -1,0 +1,20 @@
+{
+	"name": "MSI Synapse-Databricks",
+	"properties": {
+		"folder": {
+			"name": "InsertToTables"
+		},
+		"content": {
+			"query": "CREATE DATABASE SCOPED CREDENTIAL MSICredential WITH IDENTITY = 'Managed Service Identity';\n\nCREATE EXTERNAL DATA SOURCE SynapseMSI_databrickstemp\nWITH (TYPE = hadoop, LOCATION = 'abfss://databrickstemp@azuesdlsadl01.dfs.core.windows.net/', CREDENTIAL = MSICredential);\n\n\n-- MAster Keys\nSELECT * FROM sys.symmetric_keys;\n\n-- Para revisar los external data sources\nSELECT name FROM sys.external_data_sources;\n\n-- DROP\nDROP EXTERNAL DATA SOURCE ExternalDataSource_azuesdlsadl01_Curated_MI;\n\n\n\n-- Para revisar las credenciales\nSELECT * FROM sys.database_scoped_credentials;\n\n-- Drop\nDROP DATABASE SCOPED CREDENTIAL CredencialCDLEVQA_MI;",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "CDLEVQA",
+				"poolName": "CDLEVQA"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

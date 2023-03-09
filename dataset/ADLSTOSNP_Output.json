@@ -1,0 +1,32 @@
+{
+	"name": "ADLSTOSNP_Output",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "linkedServiceADLSG2",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"C_Source_TableOrFile": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "ADLSToSynase_DataSets/Source_DataSets"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": {
+					"value": "@concat(dataset().C_Source_TableOrFile,'.','parquet')",
+					"type": "Expression"
+				},
+				"fileSystem": "input"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

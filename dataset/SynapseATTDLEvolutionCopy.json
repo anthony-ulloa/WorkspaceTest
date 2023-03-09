@@ -1,0 +1,27 @@
+{
+	"name": "SynapseATTDLEvolutionCopy",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SynapseETTDLEvolutionsSource",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"C_P_KV_Secret": "azuessywadl01withSqladminuser",
+				"C_P_KV_Service": {
+					"value": "azueskvsadl01",
+					"type": "Expression"
+				}
+			}
+		},
+		"folder": {
+			"name": "ADLSToSynase_DataSets/Sink_DataSets"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "",
+			"table": ""
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

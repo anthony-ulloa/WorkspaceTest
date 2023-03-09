@@ -1,0 +1,34 @@
+{
+	"name": "SynapseETTDLEvolutionsSink",
+	"properties": {
+		"parameters": {
+			"C_Sink_SchemaOrPat": {
+				"type": "string"
+			},
+			"C_Sink_TableOrFile": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "ADLSToSynase_DataSets/Sink_DataSets"
+		},
+		"annotations": [],
+		"type": "SqlPoolTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().C_Sink_SchemaOrPat",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().C_Sink_TableOrFile",
+				"type": "Expression"
+			}
+		},
+		"sqlPool": {
+			"referenceName": "Landing",
+			"type": "SqlPoolReference"
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}
