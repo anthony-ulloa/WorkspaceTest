@@ -1,0 +1,33 @@
+{
+	"name": "PLInitialLoad",
+	"properties": {
+		"description": "Pipeline para realizar el cargue del dia 0, creando diferentes archivos parquet para cada tabla, estos archivos seran creados incrementalmente utilizando una columna tipo fecha o id",
+		"activities": [
+			{
+				"name": "Execute Process",
+				"description": "Llama al pipeline PLInitialLoadFromAmdocs",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PLGetInitExecution",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ProcessName": {
+							"value": "AmdocsToADLS",
+							"type": "Expression"
+						},
+						"ProcessType": "InitialLoad"
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "08.InitialLoad"
+		},
+		"annotations": []
+	}
+}

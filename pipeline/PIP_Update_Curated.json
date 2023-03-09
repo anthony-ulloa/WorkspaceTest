@@ -1,0 +1,252 @@
+{
+	"name": "PIP_Update_Curated",
+	"properties": {
+		"activities": [
+			{
+				"name": "Update_Curated_DF",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "Dataflow_Up_CSV",
+						"type": "DataFlowReference",
+						"parameters": {
+							"C_DF_Sink_TableorFile": {
+								"value": "'@{pipeline().parameters.P_Source_TableOrFile}'",
+								"type": "Expression"
+							},
+							"C_DF_C_Sink_DirectoryFile": {
+								"value": "'@{pipeline().parameters.P_Source_DirectoryFile}'",
+								"type": "Expression"
+							},
+							"C_DF_C_LoadDate": {
+								"value": "'@{pipeline().parameters.P_LoadDate}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"SourceUpDF": {
+								"C_Sink_TableOrFile": {
+									"value": "@pipeline().parameters.P_Source_TableOrFile",
+									"type": "Expression"
+								},
+								"C_Sink_SchemaOrPath": {
+									"value": "@pipeline().parameters.P_Source_SchemaOrPath",
+									"type": "Expression"
+								},
+								"C_Source_DirectoryFile": {
+									"value": "@pipeline().parameters.P_Source_DirectoryFile",
+									"type": "Expression"
+								},
+								"C_LoadDate": {
+									"value": "@pipeline().parameters.P_LoadDate",
+									"type": "Expression"
+								}
+							},
+							"sinkupdatecsv": {
+								"C_Sink_TableOrFile": {
+									"value": "@pipeline().parameters.P_Source_TableOrFile",
+									"type": "Expression"
+								},
+								"C_Source_DirectoryFile": {
+									"value": "@pipeline().parameters.P_Source_DirectoryFile",
+									"type": "Expression"
+								},
+								"C_LoadDate": {
+									"value": "@pipeline().parameters.P_LoadDate",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "Update Execution Detail",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update_Curated_DF",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_UpdateExecutionDetail]",
+					"storedProcedureParameters": {
+						"Error": {
+							"value": null,
+							"type": "String"
+						},
+						"Id_Execution": {
+							"value": {
+								"value": "@pipeline().parameters.P_Id_Execution",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"IsError": {
+							"value": null,
+							"type": "Boolean"
+						},
+						"rowsCopied": {
+							"value": null,
+							"type": "Int32"
+						},
+						"Source_TableOrFile": {
+							"value": {
+								"value": "@pipeline().parameters.P_Source_TableOrFile",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "DS_ParquetToSynapse_Input",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"C_P_KV_Service": {
+							"value": "@pipeline().parameters.P_KV_Service",
+							"type": "Expression"
+						},
+						"C_P_KV_Secret": {
+							"value": "@pipeline().parameters.P_KV_Secret",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Update Execution Detail Error",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update_Curated_DF",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_UpdateExecutionDetail]",
+					"storedProcedureParameters": {
+						"Error": {
+							"value": {
+								"value": "@activity('Update_Curated_DF').Error.Message",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Id_Execution": {
+							"value": {
+								"value": "@pipeline().parameters.P_Id_Execution",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"IsError": {
+							"value": {
+								"value": "@empty(activity('Update_Curated_DF').output.errors)",
+								"type": "Expression"
+							},
+							"type": "Boolean"
+						},
+						"rowsCopied": {
+							"value": null,
+							"type": "Int32"
+						},
+						"Source_TableOrFile": {
+							"value": {
+								"value": "@pipeline().parameters.P_Source_TableOrFile",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "DS_ParquetToSynapse_Input",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"C_P_KV_Service": {
+							"value": "@pipeline().parameters.P_KV_Service",
+							"type": "Expression"
+						},
+						"C_P_KV_Secret": {
+							"value": "@pipeline().parameters.P_KV_Secret",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"P_Source_TableOrFile": {
+				"type": "string"
+			},
+			"P_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Sink_TableOrFile": {
+				"type": "string"
+			},
+			"P_Source_DirectoryFile": {
+				"type": "string"
+			},
+			"P_LoadDate": {
+				"type": "string"
+			},
+			"P_KV_Secret": {
+				"type": "string"
+			},
+			"P_KV_Service": {
+				"type": "string"
+			},
+			"P_Id_Execution": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"CountActivesFiles": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "PIP_Update_Data_Curated"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-09T17:08:51Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

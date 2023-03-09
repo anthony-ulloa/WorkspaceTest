@@ -1,0 +1,420 @@
+{
+	"name": "PLIncrementalLoad",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set Max ID or Date",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Max",
+					"value": {
+						"value": "@{pipeline().parameters.P_Max}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set value",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set Max ID or Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LastValue",
+					"value": {
+						"value": "@{pipeline().parameters.P_LastValue}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Until",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "Set value",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@or(equals(int(variables('LastValue')),int(variables('Max'))),greater(int(variables('LastValue')),int(variables('Max'))))\n",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copy data to ADLS",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "OracleSource",
+									"oracleReaderQuery": {
+										"value": "@concat('SELECT * FROM ',pipeline().parameters.P_Source_SchemaOrPath,'.',pipeline().parameters.P_Source_TableOrFile,' WHERE ' , pipeline().parameters.P_ConditionColumn, '>',variables('LastValue'), ' ORDER BY ',pipeline().parameters.P_ConditionColumn,' FETCH FIRST 1000000 ROWS ONLY')",
+										"type": "Expression"
+									},
+									"partitionOption": "None",
+									"convertDecimalToInteger": false,
+									"queryTimeout": "02:00:00"
+								},
+								"sink": {
+									"type": "ParquetSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings",
+										"maxConcurrentConnections": 2
+									},
+									"formatSettings": {
+										"type": "ParquetWriteSettings"
+									}
+								},
+								"enableStaging": true,
+								"stagingSettings": {
+									"linkedServiceName": {
+										"referenceName": "LS_Update_ADLS_CSV_output",
+										"type": "LinkedServiceReference"
+									}
+								},
+								"parallelCopies": 3,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DsSinkOracleToADLS",
+									"type": "DatasetReference",
+									"parameters": {
+										"C_C_Source_SchemaOrPath": {
+											"value": "@pipeline().parameters.P_Source_SchemaOrPath",
+											"type": "Expression"
+										},
+										"C_C_Source_TableOrFile": {
+											"value": "@pipeline().parameters.P_Source_TableOrFile",
+											"type": "Expression"
+										},
+										"C_C_Source_KV_Service": {
+											"value": "@pipeline().parameters.P_Source_KV_Service",
+											"type": "Expression"
+										},
+										"C_C_Source_KV_Secret": {
+											"value": "@pipeline().parameters.P_Source_KV_Secret",
+											"type": "Expression"
+										},
+										"P_HostName": {
+											"value": "@pipeline().parameters.P_Source_HostName",
+											"type": "Expression"
+										},
+										"P_PortNumber": {
+											"value": "@pipeline().parameters.P_Source_PortNumber",
+											"type": "Expression"
+										},
+										"P_ServiceName": {
+											"value": "@pipeline().parameters.P_Source_ServiceName",
+											"type": "Expression"
+										},
+										"P_UserName": {
+											"value": "@pipeline().parameters.P_Source_UserName",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DsParquetDynamicSourceADLS",
+									"type": "DatasetReference",
+									"parameters": {
+										"P_CCKVService": {
+											"value": "@pipeline().parameters.P_Sink_KV_Service",
+											"type": "Expression"
+										},
+										"P_CCKVSecret": {
+											"value": "@pipeline().parameters.P_Sink_KV_Secret",
+											"type": "Expression"
+										},
+										"P_URL": {
+											"value": "@pipeline().parameters.P_Sink_URL",
+											"type": "Expression"
+										},
+										"P_File": {
+											"value": "@pipeline().parameters.P_Sink_TableOrFile",
+											"type": "Expression"
+										},
+										"P_Path": {
+											"value": "@pipeline().parameters.P_Sink_SchemaOrPath",
+											"type": "Expression"
+										},
+										"P_Directory": {
+											"value": "@pipeline().parameters.P_C_Source_DirectoryFile",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Update Last Value",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Get Last MAX ID",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_UpdateColumnCondition]",
+								"storedProcedureParameters": {
+									"LastValue": {
+										"value": {
+											"value": "@activity('Get Last MAX ID').output.firstRow.ID",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ProcessName": {
+										"value": {
+											"value": "@pipeline().parameters.P_ProcessName",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ProcessType": {
+										"value": {
+											"value": "@pipeline().parameters.P_ProcessType",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Source_SchemaOrPath": {
+										"value": {
+											"value": "@pipeline().parameters.P_Source_SchemaOrPath",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Source_TableOrFile": {
+										"value": {
+											"value": "@pipeline().parameters.P_Source_TableOrFile",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_Synapse_init",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Set New Last Value",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Get Last MAX ID",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "LastValue",
+								"value": {
+									"value": "@{activity('Get Last MAX ID').output.firstRow.ID}",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Get Last MAX ID",
+							"description": "Obtiene el maximo valor copiado desde el origen en el SELECT TOP ",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Copy data to ADLS",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "OracleSource",
+									"oracleReaderQuery": {
+										"value": "@concat('SELECT MAX(',pipeline().parameters.P_ConditionColumn, ') ID FROM (SELECT * FROM ',pipeline().parameters.P_Source_SchemaOrPath,'.',pipeline().parameters.P_Source_TableOrFile,' WHERE ' , pipeline().parameters.P_ConditionColumn, '>',variables('LastValue'), ' ORDER BY ',  pipeline().parameters.P_ConditionColumn,' FETCH FIRST 1000000 ROWS ONLY)')",
+										"type": "Expression"
+									},
+									"partitionOption": "None",
+									"convertDecimalToInteger": false,
+									"queryTimeout": "02:00:00"
+								},
+								"dataset": {
+									"referenceName": "DsSinkOracleToADLS",
+									"type": "DatasetReference",
+									"parameters": {
+										"C_C_Source_SchemaOrPath": {
+											"value": "@pipeline().parameters.P_Source_SchemaOrPath",
+											"type": "Expression"
+										},
+										"C_C_Source_TableOrFile": {
+											"value": "@pipeline().parameters.P_Source_TableOrFile",
+											"type": "Expression"
+										},
+										"C_C_Source_KV_Service": {
+											"value": "@pipeline().parameters.P_Source_KV_Service",
+											"type": "Expression"
+										},
+										"C_C_Source_KV_Secret": {
+											"value": "@pipeline().parameters.P_Source_KV_Secret",
+											"type": "Expression"
+										},
+										"P_HostName": {
+											"value": "@pipeline().parameters.P_Source_HostName",
+											"type": "Expression"
+										},
+										"P_PortNumber": {
+											"value": "@pipeline().parameters.P_Source_PortNumber",
+											"type": "Expression"
+										},
+										"P_ServiceName": {
+											"value": "@pipeline().parameters.P_Source_ServiceName",
+											"type": "Expression"
+										},
+										"P_UserName": {
+											"value": "@pipeline().parameters.P_Source_UserName",
+											"type": "Expression"
+										}
+									}
+								}
+							}
+						}
+					],
+					"timeout": "0.12:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"P_LastValue": {
+				"type": "string"
+			},
+			"P_Max": {
+				"type": "string"
+			},
+			"P_Source_KV_Service": {
+				"type": "string"
+			},
+			"P_Source_KV_Secret": {
+				"type": "string"
+			},
+			"P_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Source_TableOrFile": {
+				"type": "string"
+			},
+			"P_Sink_KV_Service": {
+				"type": "string"
+			},
+			"P_Sink_KV_Secret": {
+				"type": "string"
+			},
+			"P_Sink_TableOrFile": {
+				"type": "string"
+			},
+			"P_Source_Query": {
+				"type": "string"
+			},
+			"P_Sink_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Id_Execution": {
+				"type": "string"
+			},
+			"P_C_Source_DirectoryFile": {
+				"type": "string"
+			},
+			"P_C_LoadDate": {
+				"type": "string"
+			},
+			"P_ProcessType": {
+				"type": "string"
+			},
+			"P_ProcessName": {
+				"type": "string"
+			},
+			"P_Source_HostName": {
+				"type": "string"
+			},
+			"P_Source_PortNumber": {
+				"type": "string"
+			},
+			"P_Source_ServiceName": {
+				"type": "string"
+			},
+			"P_Source_UserName": {
+				"type": "string"
+			},
+			"P_Sink_URL": {
+				"type": "string"
+			},
+			"P_ConditionColumn": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"Max": {
+				"type": "String"
+			},
+			"LastValue": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "08.InitialLoad"
+		},
+		"annotations": []
+	}
+}

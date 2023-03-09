@@ -1,0 +1,324 @@
+{
+	"name": "PLInitialLoadFromAmdocs",
+	"properties": {
+		"description": "Pipeline para realizar la carga full de las tablas de amdocs a azure (Cargue inicial)",
+		"activities": [
+			{
+				"name": "Set Max ID or Date",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get Max Id Or Date For process",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Max",
+					"value": {
+						"value": "@{activity('Get Max Id Or Date For process').output.firstRow.ID}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get Max Id Or Date For process",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "OracleSource",
+						"oracleReaderQuery": {
+							"value": "@concat('SELECT MAX(',pipeline().parameters.P_ConditionColumn,')  ID FROM ',pipeline().parameters.P_Source_SchemaOrPath,'.',pipeline().parameters.P_Source_TableOrFile)",
+							"type": "Expression"
+						},
+						"partitionOption": "None",
+						"convertDecimalToInteger": false,
+						"queryTimeout": "02:00:00"
+					},
+					"dataset": {
+						"referenceName": "DsSinkOracleToADLS",
+						"type": "DatasetReference",
+						"parameters": {
+							"C_C_Source_SchemaOrPath": {
+								"value": "@pipeline().parameters.P_Source_SchemaOrPath",
+								"type": "Expression"
+							},
+							"C_C_Source_TableOrFile": {
+								"value": "@pipeline().parameters.P_Source_TableOrFile",
+								"type": "Expression"
+							},
+							"C_C_Source_KV_Service": {
+								"value": "@pipeline().parameters.P_Source_KV_Service",
+								"type": "Expression"
+							},
+							"C_C_Source_KV_Secret": {
+								"value": "@pipeline().parameters.P_Source_KV_Secret",
+								"type": "Expression"
+							},
+							"P_HostName": {
+								"value": "@pipeline().parameters.P_Source_HostName",
+								"type": "Expression"
+							},
+							"P_PortNumber": {
+								"value": "@pipeline().parameters.P_Source_PortNumber",
+								"type": "Expression"
+							},
+							"P_ServiceName": {
+								"value": "@pipeline().parameters.P_Source_ServiceName",
+								"type": "Expression"
+							},
+							"P_UserName": {
+								"value": "@pipeline().parameters.P_Source_UserName",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "Set value",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Set Max ID or Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "LastValue",
+					"value": {
+						"value": "@{pipeline().parameters.P_LastValue}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Validar Cargue",
+				"description": "Validar si en una segunda ejecucion hay mas registros para cargar",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Set value",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@or(equals(sub(int(variables('LastValue')),int(variables('Max'))),0),greater(int(variables('LastValue')),int(variables('Max'))))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Execute Incremental Load",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PLIncrementalLoad",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"P_LastValue": {
+										"value": "@int(variables('LastValue'))",
+										"type": "Expression"
+									},
+									"P_Max": {
+										"value": "@int(variables('Max'))",
+										"type": "Expression"
+									},
+									"P_Source_KV_Service": {
+										"value": "@pipeline().parameters.P_Source_KV_Service",
+										"type": "Expression"
+									},
+									"P_Source_KV_Secret": {
+										"value": "@pipeline().parameters.P_Source_KV_Secret",
+										"type": "Expression"
+									},
+									"P_Source_SchemaOrPath": {
+										"value": "@pipeline().parameters.P_Source_SchemaOrPath",
+										"type": "Expression"
+									},
+									"P_Source_TableOrFile": {
+										"value": "@pipeline().parameters.P_Source_TableOrFile",
+										"type": "Expression"
+									},
+									"P_Sink_KV_Service": {
+										"value": "@pipeline().parameters.P_Sink_KV_Service",
+										"type": "Expression"
+									},
+									"P_Sink_KV_Secret": {
+										"value": "@pipeline().parameters.P_Sink_KV_Secret",
+										"type": "Expression"
+									},
+									"P_Sink_TableOrFile": {
+										"value": "@pipeline().parameters.P_Sink_TableOrFile",
+										"type": "Expression"
+									},
+									"P_Source_Query": {
+										"value": "@pipeline().parameters.P_Source_Query",
+										"type": "Expression"
+									},
+									"P_Sink_SchemaOrPath": {
+										"value": "@pipeline().parameters.P_Sink_SchemaOrPath",
+										"type": "Expression"
+									},
+									"P_Id_Execution": {
+										"value": "@pipeline().parameters.P_Id_Execution",
+										"type": "Expression"
+									},
+									"P_C_Source_DirectoryFile": {
+										"value": "@pipeline().parameters.P_C_Source_DirectoryFile",
+										"type": "Expression"
+									},
+									"P_C_LoadDate": {
+										"value": "@pipeline().parameters.P_C_LoadDate",
+										"type": "Expression"
+									},
+									"P_ProcessType": {
+										"value": "@pipeline().parameters.P_ProcessType",
+										"type": "Expression"
+									},
+									"P_ProcessName": {
+										"value": "@pipeline().parameters.P_ProcessName",
+										"type": "Expression"
+									},
+									"P_Source_HostName": {
+										"value": "@pipeline().parameters.P_Source_HostName",
+										"type": "Expression"
+									},
+									"P_Source_PortNumber": {
+										"value": "@pipeline().parameters.P_Source_PortNumber",
+										"type": "Expression"
+									},
+									"P_Source_ServiceName": {
+										"value": "@pipeline().parameters.P_Source_ServiceName",
+										"type": "Expression"
+									},
+									"P_Source_UserName": {
+										"value": "@pipeline().parameters.P_Source_UserName",
+										"type": "Expression"
+									},
+									"P_Sink_URL": {
+										"value": "@pipeline().parameters.P_Sink_URL",
+										"type": "Expression"
+									},
+									"P_ConditionColumn": {
+										"value": "@pipeline().parameters.P_ConditionColumn",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Wait 2 Seconds",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 2
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"P_Source_KV_Service": {
+				"type": "string"
+			},
+			"P_Source_KV_Secret": {
+				"type": "string"
+			},
+			"P_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Source_TableOrFile": {
+				"type": "string"
+			},
+			"P_Sink_KV_Service": {
+				"type": "string"
+			},
+			"P_Sink_KV_Secret": {
+				"type": "string"
+			},
+			"P_Sink_TableOrFile": {
+				"type": "string"
+			},
+			"P_Source_Query": {
+				"type": "string"
+			},
+			"P_Sink_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Id_Execution": {
+				"type": "string"
+			},
+			"P_C_Source_DirectoryFile": {
+				"type": "string"
+			},
+			"P_C_LoadDate": {
+				"type": "string"
+			},
+			"P_ProcessType": {
+				"type": "string"
+			},
+			"P_ProcessName": {
+				"type": "string"
+			},
+			"P_Source_HostName": {
+				"type": "string"
+			},
+			"P_Source_PortNumber": {
+				"type": "string"
+			},
+			"P_Source_ServiceName": {
+				"type": "string"
+			},
+			"P_Source_UserName": {
+				"type": "string"
+			},
+			"P_Sink_URL": {
+				"type": "string"
+			},
+			"P_LastValue": {
+				"type": "string"
+			},
+			"P_ConditionColumn": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"Max": {
+				"type": "String"
+			},
+			"LastValue": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "08.InitialLoad"
+		},
+		"annotations": []
+	}
+}

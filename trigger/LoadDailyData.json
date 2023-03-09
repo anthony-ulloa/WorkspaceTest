@@ -1,0 +1,33 @@
+{
+	"name": "LoadDailyData",
+	"properties": {
+		"description": "Trigger que ejecutara el proceso de cargo diario de las tablas de amdocs",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PLDailyData",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Day",
+				"interval": 1,
+				"startTime": "2023-03-07T22:42:00",
+				"timeZone": "Central Standard Time (Mexico)",
+				"schedule": {
+					"minutes": [
+						5
+					],
+					"hours": [
+						17
+					]
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,38 @@
+{
+	"name": "PLMigracionFromSnowflakeAWS",
+	"properties": {
+		"description": "Migrar la informacion del proceso productivo de aws a synapse.",
+		"activities": [
+			{
+				"name": "Execute Process",
+				"description": "Ejecutar el proceso de migracion de informacion desde snowflake aws a Sypnase",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PLGetInitExecution",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ProcessName": {
+							"value": "SnowflakeToADLS",
+							"type": "Expression"
+						},
+						"ProcessType": {
+							"value": "MigrationSnowflakeData",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "01.MigracionSnowflake"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-18T18:07:56Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

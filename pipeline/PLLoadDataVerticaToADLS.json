@@ -1,0 +1,360 @@
+{
+	"name": "PLLoadDataVerticaToADLS",
+	"properties": {
+		"description": "Mover datos desde oracle a data lake",
+		"activities": [
+			{
+				"name": "Copy Vertica To ADLS",
+				"description": "Copiar datos desde Vertica al Data Lake",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "VerticaSource",
+						"query": {
+							"value": "@replace(pipeline().parameters.P_Source_Query,'\\r\\n',' ')",
+							"type": "Expression"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings",
+							"maxConcurrentConnections": 2
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": true,
+					"stagingSettings": {
+						"linkedServiceName": {
+							"referenceName": "LS_Update_ADLS_CSV_output",
+							"type": "LinkedServiceReference"
+						}
+					},
+					"parallelCopies": 5,
+					"enableSkipIncompatibleRow": false
+				},
+				"inputs": [
+					{
+						"referenceName": "DsSinkVerticaToADLS",
+						"type": "DatasetReference",
+						"parameters": {
+							"C_C_Source_SchemaOrPath": {
+								"value": "@pipeline().parameters.P_Sink_SchemaOrPath",
+								"type": "Expression"
+							},
+							"C_C_Source_TableOrFile": {
+								"value": "@pipeline().parameters.P_Sink_TableOrFile",
+								"type": "Expression"
+							},
+							"Server": {
+								"value": "@pipeline().parameters.P_Source_HostName",
+								"type": "Expression"
+							},
+							"Port": {
+								"value": "@pipeline().parameters.P_Source_PortNumber",
+								"type": "Expression"
+							},
+							"Database": {
+								"value": "@pipeline().parameters.P_Source_ServiceName",
+								"type": "Expression"
+							},
+							"User": {
+								"value": "@pipeline().parameters.P_Source_UserName",
+								"type": "Expression"
+							},
+							"CCKVService": {
+								"value": "@pipeline().parameters.P_Source_KV_Service",
+								"type": "Expression"
+							},
+							"CCKVSecret": {
+								"value": "@pipeline().parameters.P_Source_KV_Secret",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DsCsvDynamicSourceADLS",
+						"type": "DatasetReference",
+						"parameters": {
+							"P_CCKVService": {
+								"value": "@pipeline().parameters.P_Sink_KV_Service",
+								"type": "Expression"
+							},
+							"P_CCKVSecret": {
+								"value": "@pipeline().parameters.P_Sink_KV_Secret",
+								"type": "Expression"
+							},
+							"P_URL": {
+								"value": "@pipeline().parameters.P_Sink_URL",
+								"type": "Expression"
+							},
+							"P_File": {
+								"value": "@pipeline().parameters.P_Sink_TableOrFile",
+								"type": "Expression"
+							},
+							"P_Path": {
+								"value": "@pipeline().parameters.P_Sink_SchemaOrPath",
+								"type": "Expression"
+							},
+							"P_Directory": {
+								"value": "@pipeline().parameters.P_C_Source_DirectoryFile",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Update Execution Detail",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Vertica To ADLS",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_UpdateExecutionDetail]",
+					"storedProcedureParameters": {
+						"Error": {
+							"value": null,
+							"type": "String"
+						},
+						"Id_Execution": {
+							"value": {
+								"value": "@pipeline().parameters.P_Id_Execution",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"IsError": {
+							"value": {
+								"value": "@empty(activity('Copy Vertica To ADLS').output.errors)",
+								"type": "Expression"
+							},
+							"type": "Boolean"
+						},
+						"rowsCopied": {
+							"value": {
+								"value": "@activity('Copy Vertica To ADLS').output.rowsCopied",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Source_TableOrFile": {
+							"value": {
+								"value": "@pipeline().parameters.P_Source_TableOrFile",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_Synapse_init",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Execution Detail Error",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Vertica To ADLS",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_UpdateExecutionDetail]",
+					"storedProcedureParameters": {
+						"Error": {
+							"value": null,
+							"type": "String"
+						},
+						"Id_Execution": {
+							"value": {
+								"value": "@pipeline().parameters.P_Id_Execution",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"IsError": {
+							"value": {
+								"value": "@empty(activity('Copy Vertica To ADLS').output.errors)",
+								"type": "Expression"
+							},
+							"type": "Boolean"
+						},
+						"rowsCopied": {
+							"value": {
+								"value": "@activity('Copy Vertica To ADLS').output.rowsCopied",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Source_TableOrFile": {
+							"value": {
+								"value": "@pipeline().parameters.P_Source_TableOrFile",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_Synapse_init",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Update Load Date",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Execution Detail",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "usp_UpdateFileDates",
+					"storedProcedureParameters": {
+						"ProcessName": {
+							"value": {
+								"value": "@pipeline().parameters.P_ProcessName",
+								"type": "Expression"
+							}
+						},
+						"ProcessType": {
+							"value": {
+								"value": "@pipeline().parameters.P_ProcessType",
+								"type": "Expression"
+							}
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_Synapse_init",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"P_Source_KV_Service": {
+				"type": "string"
+			},
+			"P_Source_KV_Secret": {
+				"type": "string"
+			},
+			"P_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Source_TableOrFile": {
+				"type": "string"
+			},
+			"P_Sink_KV_Service": {
+				"type": "string"
+			},
+			"P_Sink_KV_Secret": {
+				"type": "string"
+			},
+			"P_Sink_TableOrFile": {
+				"type": "string"
+			},
+			"P_Source_Query": {
+				"type": "string"
+			},
+			"P_Sink_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Id_Execution": {
+				"type": "string"
+			},
+			"P_C_Source_DirectoryFile": {
+				"type": "string"
+			},
+			"P_C_LoadDate": {
+				"type": "string"
+			},
+			"P_ProcessType": {
+				"type": "string"
+			},
+			"P_ProcessName": {
+				"type": "string"
+			},
+			"P_Source_HostName": {
+				"type": "string"
+			},
+			"P_Source_PortNumber": {
+				"type": "string"
+			},
+			"P_Source_ServiceName": {
+				"type": "string"
+			},
+			"P_Source_UserName": {
+				"type": "string"
+			},
+			"P_Sink_URL": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"StartDate": {
+				"type": "String"
+			},
+			"Quey_Name": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "00.Generics"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-18T18:07:47Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

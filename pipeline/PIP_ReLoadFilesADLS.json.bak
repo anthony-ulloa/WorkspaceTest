@@ -1,0 +1,462 @@
+{
+	"name": "PIP_ReLoadFilesADLS",
+	"properties": {
+		"activities": [
+			{
+				"name": "LookupFilesADLS",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "\tSelect Source_DirectoryFile from (select  Source_DirectoryFile from dbo.MigrationTable where processname = 'ADLSToSynapse' group by Source_DirectoryFile )T\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_UpdateFiles",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LookupFilesADLS",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('LookupFilesADLS').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 4,
+					"activities": [
+						{
+							"name": "ExecuteUpdate",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PIP_Complete_Update_MigrationData",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"P_Ini_Source_DirectoryFile": {
+										"value": "@item().Source_DirectoryFile",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "LookupFilesADLS_Active",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ForEach_UpdateFiles",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "select  cast(count(*) as nvarchar(10)) CONTEOF from dbo.MigrationTable where processname = 'ADLSToSynapse' and [Active] = '1'\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "If Condition Exectute Reload",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "SetvarRows",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@bool(startswith(variables('ReCountActivesFiles'), '0'))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "ExecuteReloadFiles",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PIP_GetInitExecution",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"P_ProcessName": "ADLSToSynapse"
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Wait_1_sec_reload",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "SetvarRows",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "LookupFilesADLS_Active",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ReCountActivesFiles",
+					"value": {
+						"value": "@activity('LookupFilesADLS_Active').output.firstRow.CONTEOF ",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "LookupFilesADLS_Active_Oracle",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "If Condition Exectute Reload",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": " declare @conteoChns int = (SELECT count(*)  from dbo.MigrationTable where [ProcessName] = 'ADLSToSynapse' and [Source_TableOrFile] = 'Cadenas' and Active = '1')\n declare @varDateChns  date  = (SELECT [LoadDate]  from dbo.MigrationTable where [ProcessName] = 'ADLSToSynapse' and [Source_TableOrFile] = 'Cadenas')\n\nif @varDateChns < cast(dbo.ufn_GetLocalDate(GETUTCDATE()) as date)\nbegin\n\tset @conteoChns = '1'\nend\nelse\nbegin\n\tset @conteoChns = '0'\nend\n\n\n\n\n select cast(@varDateChns as nvarchar (12))  'DATE_RCM',cast(@conteoChns as nvarchar(100)) as 'CONTEOF' ",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "SetvarRows_Oracle",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "LookupFilesADLS_Active_Oracle",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "countrowsOracle",
+					"value": {
+						"value": "@activity('LookupFilesADLS_Active_Oracle').output.firstRow.CONTEOF ",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "If Condition Exectute_Oracle",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "SetvarRows_Oracle",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "SetvarRow_Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@bool(startswith(variables('countrowsOracle'), '1'))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Wait_1_sec",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Script_Update_Oracle",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "LS_Synapse_init",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": "\r\n\r\ndeclare @varDateChns  date  = (SELECT [LoadDate]  from dbo.MigrationTable where [ProcessName] = 'ADLSToSynapse' and [Source_TableOrFile] = 'Cadenas')\r\n\r\ntruncate table  landing.DEV_INV_CON_CAT_SKUS \r\ntruncate table  landing.DEV_INV_CON_CAT_PDV\r\n\r\ntruncate table  [Landing].[DEV_INV_REPORTECANTIDADMANO] \r\ntruncate table  [Landing].[DEV_INV_REPORTECANTIDADMANO2]\r\ntruncate table  [Landing].[DEV_INV_SERIESENPENDING]\r\ntruncate table  [Landing].[DEV_INV_SERIESENTRANSITO]\r\n\r\n\r\nset @varDateChns   = (SELECT [LoadDate]  from dbo.MigrationTable where [ProcessName] = 'ADLSToSynapse' and [Source_TableOrFile] = 'Cadenas')\r\n\r\ninsert into [Landing].[DEV_INV_CON_CAT_SKUS] SELECT * from [Landing].[DEV_INV_CON_CAT_SKUS_FULL] WHERE CREATE_DATE   = @varDateChns\r\ninsert into [Landing].[DEV_INV_CON_CAT_PDV] SELECT *  from [Landing].[DEV_INV_CON_CAT_PDV_FULL] WHERE CREATE_DATE    = @varDateChns\r\ninsert into [Landing].[DEV_inv_cadenas]  SELECT *  from [Landing].[DEV_inv_cadenas_FULL] WHERE CREATE_DATE\t\t\t = @varDateChns\r\n\r\n INSERT into  [Landing].[DEV_INV_REPORTECANTIDADMANO]\tSELECT * FROM  [Landing].[DEV_INV_REPORTECANTIDADMANO_full]\t\tWHERE CREATE_DATE   = @varDateChns\r\n INSERT into  [Landing].[DEV_INV_REPORTECANTIDADMANO2]\tSELECT * FROM  [Landing].[DEV_INV_REPORTECANTIDADMANO2_full]\tWHERE CREATE_DATE   = @varDateChns\r\n INSERT into  [Landing].[DEV_INV_SERIESENPENDING]\t\tSELECT * FROM  [Landing].[DEV_INV_SERIESENPENDING_full]\t\t\tWHERE CREATE_DATE   = @varDateChns\r\n INSERT into  [Landing].[DEV_INV_SERIESENTRANSITO]\t\tSELECT * FROM  [Landing].[DEV_INV_SERIESENTRANSITO_full]\t\tWHERE CREATE_DATE   = @varDateChns"
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "SetvarRow_Date",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "LookupFilesADLS_Active_Oracle",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "RowDate",
+					"value": {
+						"value": "@activity('LookupFilesADLS_Active_Oracle').output.firstRow.DATE_RCM",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "LookupFilesADLS_Active_Val",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "If Condition Exectute_Oracle",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "select  cast(count(*) as nvarchar(10)) CONTEOF from dbo.MigrationTable where processname = 'ADLSToSynapse' and [Active] = '1'\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "SetvarRows_Val",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "LookupFilesADLS_Active_Val",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ReCountActivesFiles",
+					"value": {
+						"value": "@activity('LookupFilesADLS_Active_Val').output.firstRow.CONTEOF ",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "If Condition Exectute Master_final",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "SetvarRows_Val",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@bool(startswith(variables('ReCountActivesFiles'), '0'))",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "Execute_Validation_Master_or_Files",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PIP_Gen_Control_Mail_Files_Or_Master",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						},
+						{
+							"name": "Script_Update_MigrationTable",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Execute_Validation_Master_or_Files",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "LS_Synapse_init",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": "update dbo.MigrationTable  set Active = '0' where Processname = 'ADLSToSynapse' \r\n"
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "Wait_40_min",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 1
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"SetvarRows": {
+				"type": "String"
+			},
+			"countrowsOracle": {
+				"type": "String"
+			},
+			"RowDate": {
+				"type": "String"
+			},
+			"ReCountActivesFiles": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "PIP_Migration_Data"
+		},
+		"annotations": []
+	}
+}

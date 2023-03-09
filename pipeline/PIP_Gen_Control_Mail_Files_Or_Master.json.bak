@@ -1,0 +1,275 @@
+{
+	"name": "PIP_Gen_Control_Mail_Files_Or_Master",
+	"properties": {
+		"activities": [
+			{
+				"name": "GetInitRowsActive",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "\r\n    DECLARE @result        VARCHAR (5000) = '',\r\n            @code          INT,\r\n            @state         INT,\r\n            @message       VARCHAR (5000) = '',\r\n            @stacktracetxt INT\r\n\r\n  IF Object_id('tempdb..#R_INV_TMP_STREAM_SERIALS_IN_TRANSIT') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_INV_TMP_STREAM_SERIALS_IN_TRANSIT\r\n        END\r\n\r\n\t\t\t\r\n\r\n IF Object_id('tempdb..#R_INV_TMP_STREAM_SERIALS_IN_PENDING') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_INV_TMP_STREAM_SERIALS_IN_PENDING\r\n        END\r\n\t\t\r\n\t\t\t\r\n\t   IF Object_id('tempdb..#R_INV_TMP_STREAM_STOCK_ON_HAND') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_INV_TMP_STREAM_STOCK_ON_HAND \r\n        END\r\n\r\n\r\n\t\t IF Object_id('tempdb..#R_INV_TMP_STREAM_STOCK_ON_CHAINS') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_INV_TMP_STREAM_STOCK_ON_CHAINS\r\n        END\r\n\t\t\t\t\r\n  IF Object_id('tempdb..#TEMP_STREAM_SKU_CATALOG') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #TEMP_STREAM_SKU_CATALOG\r\n        END\r\n\r\n      IF Object_id('tempdb..#R_DUPLICATES_TEMP_STREAM_SKU_CATALOG') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_DUPLICATES_TEMP_STREAM_SKU_CATALOG\r\n        END\r\n\r\n\r\n\t\t\r\n\r\n     SELECT * INTO   #R_INV_TMP_STREAM_STOCK_ON_HAND FROM \r\n\r\n\t(SELECT * FROM  [LANDING].[DEV_INV_REPORTECANTIDADMANO]\r\n\r\n\t UNION \r\n\r\n\t SELECT * FROM [LANDING].[DEV_INV_REPORTECANTIDADMANO2]) P\r\n\r\n\r\n     SELECT * INTO  #R_INV_TMP_STREAM_SERIALS_IN_PENDING FROM  [LANDING].[DEV_INV_SERIESENPENDING]\r\n\r\n\t  \r\n\t\t\t\r\n     SELECT * INTO  #R_INV_TMP_STREAM_STOCK_ON_CHAINS FROM  [LANDING].[DEV_INV_CADENAS]\r\n\r\n\r\n      SELECT * INTO  #R_INV_TMP_STREAM_SERIALS_IN_TRANSIT FROM  [LANDING].[DEV_INV_SERIESENTRANSITO]\r\n\r\n      SELECT *\r\n      INTO   #TEMP_STREAM_SKU_CATALOG\r\n      FROM   (SELECT SAP,\r\n                     Upper(TRIM(ORACLE)) 'ORACLE',\r\n                     BUNDLE 'BUNDLE',\r\n                     PARENT_SKU,\r\n                     [OEM],\r\n                     [DESCRIPCION DE SISTEMA]\r\n                     'SYSTEM_DESCRIPTION',\r\n                     MODELO 'MODEL',\r\n                     Upper(TRIM(TIPO)) 'TYPE',\r\n                     COLOR'COLOUR',\r\n                     [ESTATUS PRE] 'PRE_STATUS',\r\n                     [ESTATUS POS] 'POS_STATUS',\r\n                     ESTATUS 'STATUS',\r\n                     [SISTEMA OPERATIVO] 'OPERATING_SYSTEM',\r\n                     CATEGORIA 'CATEGORY',\r\n                     Upper(TRIM([TIPO 2])) 'TYPE2',\r\n                     OPERADOR 'CARRIER',\r\n                     [CARRIER CONSUMO-N] 'CARRIER_CONSUMTION_N',\r\n                     [CARRIER CONSUMO-R] 'CARRIER_CONSUMTION_R' ,\r\n                     AGEING,\r\n                     AGEING_RANGE,\r\n                     COSTO 'COST',\r\n                     [BASE APLICA] 'BASE_APPLIES',\r\n                     'INSERT' 'METADATAACTION',\r\n                     '0' 'METADATAISUPDATE',\r\n                     NULL 'METADATAROW_ID',\r\n                     CONCAT([FILE_NAME], '_', [CREATE_DATE]) 'FILE_NAME',\r\n                     CREATE_DATE,\r\n                     DBO.UFN_GETLOCALDATE(Getutcdate()) 'CREATED_DATE',\r\n                     DBO.UFN_GETLOCALDATE(Getutcdate()) 'MODIFIED_DATE',\r\n                     'dashboard_mexico' [USER]\r\n              FROM   LANDING.DEV_INV_CON_CAT_SKUS\r\n             --where METADATAACTION = 'INSERT'\r\n             ) Q\r\n\r\n---------------------------------------------------------------Consumos-----------------------------------------------------------------------------------------\r\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\r\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\r\n        IF Object_id('tempdb..#R_INV_TMP_STREAM_TRANSACTION_REPORT') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_INV_TMP_STREAM_TRANSACTION_REPORT\r\n        END\r\n\t\t\r\n\t\t  IF Object_id('tempdb..#R_CON_TMP_STREAM_FILE_ORDERS') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_CON_TMP_STREAM_FILE_ORDERS\r\n        END\r\n\r\n\t\t\r\n\t\t  IF Object_id('tempdb..#R_CON_TMP_STREAM_FILE_ORDERS') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_CON_TMP_STREAM_FILE_ORDERS\r\n        END\r\n\t\t\r\n  select * into  #R_INV_TMP_STREAM_TRANSACTION_REPORT from\r\n      (SELECT [CODIGO_ORGANIZACION]     'ORGANIZATION_CODE',\r\n              [NOMBRE_ORGANIZACION]     'ORGANIZATION_NAME',\r\n              [SERIE]                   'SERIES',\r\n              [CODIGO]                  'CODE',\r\n              [SUBINVENTARIO]           'SUBINVENTORY',\r\n              [LOCALIZADOR]             'LOCALIZER',\r\n              [FECHA_TRANSACCION]       'TRANSACTION_DATE',\r\n              [CANTIDAD]                'QUANTITY',\r\n              [TIPO_TRANSACCION]        'TRANSACTION_TYPE',\r\n              [DESCRIPCION_TRANSACCION] 'TRANSACTION_DESCRIPTION',\r\n              [QUERY_NAME],\r\n              [CREATE_DATE]\r\n       FROM   LANDING.DEV_CON_REPORTETRANSACCIONES) T1\r\n\t   \r\n\t   \r\n\t  SELECT * INTO  #R_CON_TMP_STREAM_FILE_ORDERS FROM\r\n      (SELECT [EXECUTION_DATE],\r\n              [REASON_DESCRIP],\r\n              [IMEI],\r\n              [SALES_CHANNEL_DESCR],\r\n              [PLAN_TARIFARIO] AS RATE_PLAN,\r\n              [ACTION_TYPE_DESCR],\r\n              [SKU_EQUIPO],\r\n              [FILE_NAME],\r\n              [CREATE_DATE]\r\n       FROM   LANDING.DEV_CON_ORDERS)T2\r\n\t   \r\n\t   \r\n\t         TRUNCATE TABLE LANDING.DEV_CON_PRODUCTOFFERING\r\n\r\n\r\nIF Object_id('tempdb..#TMP_STREAM_PLANES') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #TMP_STREAM_PLANES\r\n        END\r\n\r\n      IF Object_id('tempdb..#R_DUPLICATES_TMP_STREAM_PLANES') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_DUPLICATES_TMP_STREAM_PLANES\r\n        END\r\n\r\n      SELECT *\r\n      INTO   #TMP_STREAM_PLANES\r\n      FROM   (SELECT [DESCRIPCION PLAN]                      'DESCRIPTION_PLAN', \r\n                     [TIPO PLAN]                             'PLAN_TYPE',       \r\n                     [PLAN]                                  'PLAN',\t\t\t\r\n                     [PLAN HOMOLOGADO]                       'APPROVED_PLAN',   \r\n                     [FAMILIA PLAN]                          'FAMILY_PLAN',\t\t\r\n\t\t\t\t\t 'INSERT'                                'METADATAACTION',\t\t\r\n                     '0'                                     'METADATAISUPDATE',\r\n                     NULL                                    'METADATAROW_ID',\r\n                     CONCAT([FILE_NAME], '_', [CREATE_DATE]) 'FILE_NAME',\r\n                     CREATE_DATE,\r\n                     DBO.UFN_GETLOCALDATE(Getutcdate())      'CREATED_DATE',\r\n                     DBO.UFN_GETLOCALDATE(Getutcdate())      'MODIFIED_DATE',\r\n                     'dashboard_mexico'                      [USER]\r\n              FROM   LANDING.DEV_CON_CAT_PLANES\r\n             --where METADATAACTION = 'INSERT'\r\n             ) Q\r\n\r\n      /**SQL_DEL_DUPLICATES**/\r\n      SELECT *\r\n      INTO   #R_DUPLICATES_TMP_STREAM_PLANES\r\n      FROM   (SELECT *,\r\n                     ROW_NUMBER()\r\n                       OVER (\r\n                         PARTITION BY [DESCRIPTION_PLAN], [FILE_NAME]\r\n                         ORDER BY [FILE_NAME], [CREATE_DATE] DESC) AS ROW_NUM\r\n              FROM   #TMP_STREAM_PLANES) P\r\n      WHERE  P.ROW_NUM = 1\r\n\r\n      MERGE INTO [LANDING].[DEV_CON_PRODUCTOFFERING] AS T\r\n      USING (SELECT S.*,\r\n                    SC.ID\t\t\t\t\t\t\t\t\t\t\t\tSUBSCRIPION_ID,\r\n\t\t\t\t    NEWID()    ID--,\r\n                     FROM   #R_DUPLICATES_TMP_STREAM_PLANES S\r\n                    INNER JOIN [LANDING].[DEV_CON_SUBSCRIPTIONCATEGORY] SC\r\n                            ON SC.NAME = S.PLAN_TYPE\r\n  /*WHERE NOT (METADATAACTION = 'DELETE' AND METADATAISUPDATE = TRUE)*/)\r\n            AS\r\n            S\r\n      ON S.DESCRIPTION_PLAN = T.NAME\r\n      WHEN MATCHED THEN\r\n        UPDATE SET T.NAME = S.DESCRIPTION_PLAN,\r\n                   T.PLAN_TYPE = S.PLAN_TYPE,\r\n                   T.DESCRIPTION = S.[PLAN],\r\n                   T.APPROVED_PLAN_NAME = S.APPROVED_PLAN,\r\n                   T.FAMILY_PLAN_NAME = S.FAMILY_PLAN,\r\n                   T.SUBSCRIPTION_CATEGORY_ID = S.SUBSCRIPION_ID,\r\n                   T.MODIFIED_DATE = S.MODIFIED_DATE,\r\n                   T.[USER] = 'dashboard_mexico'\r\n      WHEN NOT MATCHED THEN\r\n        INSERT( ID,\r\n                NAME,\r\n                PLAN_TYPE,\r\n                DESCRIPTION,\r\n                APPROVED_PLAN_NAME,\r\n                FAMILY_PLAN_NAME,\r\n                SUBSCRIPTION_CATEGORY_ID,\r\n                CREATED_DATE,\r\n                MODIFIED_DATE,\r\n                [USER] )\r\n        VALUES( S.ID,\r\n                S.DESCRIPTION_PLAN,\r\n                S.PLAN_TYPE,\r\n                S.[PLAN],\r\n                S.APPROVED_PLAN,\r\n                S.FAMILY_PLAN,\r\n                S.SUBSCRIPION_ID,\r\n                S.CREATED_DATE,\r\n                S.MODIFIED_DATE,\r\n                S.[USER] );\r\n\r\n     \r\n\r\n\r\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\r\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\r\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\r\n\r\n\r\n\r\n\r\n\t\t/**SQL_DEL_DUPLICATES**/\r\n      SELECT * INTO   #R_DUPLICATES_TEMP_STREAM_SKU_CATALOG   FROM   (SELECT *, ROW_NUMBER() OVER (PARTITION BY Upper(ORACLE), [FILE_NAME] ORDER BY [FILE_NAME], [CREATE_DATE] DESC) AS ROW_NUM  FROM   #TEMP_STREAM_SKU_CATALOG) P  WHERE  P.ROW_NUM = 1\r\n\t  --/** Update quotation marks **/\r\n\r\n      UPDATE #R_DUPLICATES_TEMP_STREAM_SKU_CATALOG SET    SAP = Replace(SAP, '\"', '')  WHERE  SAP LIKE '%\"%'\r\n      UPDATE #R_DUPLICATES_TEMP_STREAM_SKU_CATALOG SET    COST = Replace(COST, '\"', '') WHERE  COST LIKE '%\"%'\r\n      UPDATE #R_DUPLICATES_TEMP_STREAM_SKU_CATALOG SET    ORACLE = TRIM(ORACLE)\t\r\n\r\n\t   TRUNCATE TABLE [LANDING].[DEV_INV_PHYSICAL_RESOURCE_SPECIFICATION] \r\n\r\n\t  /**SQL UPDATE PT PHYSICAL_RESOURCE_SPECIFICATION**/\r\n      MERGE INTO [LANDING].[DEV_INV_PHYSICAL_RESOURCE_SPECIFICATION] T\r\n      USING (SELECT S.*,OP.ID [OPERATOR],MN.ID MANUFACTURER,S.ROW_NUM ID,'' BRAND,'' [NAME],'' VERSION_NUMBER,'' POWER_STATE,'' SUB_INVENTORY,'Inventory'SOURCE_DATA_TYPE,'Stock'    INVENTORY_TYPE,DBO.UFN_GETLOCALDATE(Getutcdate()) 'MANUFACTURE_DATE'  FROM   #R_DUPLICATES_TEMP_STREAM_SKU_CATALOG S    INNER JOIN LANDING.DEV_INV_ORGANIZATION OP\r\n                            ON Cast(S.CARRIER AS VARCHAR(50)) = OP.[NAME]   AND OP.[TYPE] = 'Operator'\r\n                    INNER JOIN LANDING.DEV_INV_ORGANIZATION MN  ON TRIM(S.[OEM]) = MN.[NAME]  AND MN.[TYPE] = 'Manufacturer'  WHERE  NOT ( METADATAACTION IN ( 'DELETE', 'UPDATE' )  AND METADATAISUPDATE = '0' )  AND S.ORACLE <> 'N/A'  AND BASE_APPLIES LIKE '%Inventory%') AS S ON Upper(TRIM(S.ORACLE)) = TRIM(T.STOCK_KEEPING_UNIT)\r\n      WHEN MATCHED THEN\r\n        UPDATE SET T.BUNDLE = S.BUNDLE,T.PARENT_SKU = S.PARENT_SKU,T.COLOUR = S.COLOUR,T.[DESCRIPTION] = S.SYSTEM_DESCRIPTION,T.BRAND = S.BRAND,T.[NAME] = S.[NAME],T.MANUFACTURE_DATE = S.MANUFACTURE_DATE,T.OPERATING_SYSTEM = S.OPERATING_SYSTEM,T.MODEL_NUMBER = S.MODEL,T.OPERATOR_ID = S.[OPERATOR],T.ORGANIZATION_ID = S.MANUFACTURER,T.OTHER_IDENTIFIER = S.SAP,T.POSTPAID_USAGE_STATE = S.POS_STATUS,T.POWER_STATE = S.POWER_STATE,T.PREPAID_USAGE_STATE = S.PRE_STATUS,T.[STATUS] = S.[STATUS],T.CATEGORY = S.CATEGORY,T.[TYPE2] = S.[TYPE2],T.CARRIER = S.CARRIER,T.STOCK_KEEPING_UNIT = S.ORACLE,T.SUB_INVENTORY = S.SUB_INVENTORY,T.[TYPE] = S.[TYPE],T.VERSION_NUMBER = S.VERSION_NUMBER,T.AGEING = S.AGEING,T.AGEING_RANGE = S.AGEING_RANGE,T.COST = S.COST,T.SOURCE_DATA_TYPE = S.SOURCE_DATA_TYPE,T.INVENTORY_TYPE = S.INVENTORY_TYPE,T.CREATED_DATE = S.CREATED_DATE,T.MODIFIED_DATE = S.MODIFIED_DATE,T.[USER] = S.[USER]      WHEN NOT MATCHED THEN\r\n        INSERT ( ID,BUNDLE,PARENT_SKU,COLOUR,DESCRIPTION,BRAND,NAME,MANUFACTURE_DATE,OPERATING_SYSTEM,MODEL_NUMBER,[OPERATOR_ID],ORGANIZATION_ID,OTHER_IDENTIFIER,POSTPAID_USAGE_STATE,POWER_STATE,PREPAID_USAGE_STATE,STATUS,CATEGORY,TYPE2,CARRIER,STOCK_KEEPING_UNIT,SUB_INVENTORY,TYPE,VERSION_NUMBER,AGEING,AGEING_RANGE,COST,SOURCE_DATA_TYPE,INVENTORY_TYPE,CREATED_DATE,MODIFIED_DATE,[USER] )\r\n        VALUES ( S.ID,S.BUNDLE,S.PARENT_SKU,S.COLOUR,S.SYSTEM_DESCRIPTION,S.BRAND,S.[NAME],S.MANUFACTURE_DATE,S.OPERATING_SYSTEM,S.MODEL,S.[OPERATOR],S.MANUFACTURER,S.SAP,S.POS_STATUS,S.POWER_STATE,S.PRE_STATUS,S.[STATUS],S.CATEGORY,S.[TYPE2],S.CARRIER,S.ORACLE,S.SUB_INVENTORY,S.[TYPE],S.VERSION_NUMBER,S.AGEING,S.AGEING_RANGE,S.COST,S.SOURCE_DATA_TYPE,S.INVENTORY_TYPE,S.CREATED_DATE,S.MODIFIED_DATE,S.[USER] );\r\n\t\t\r\n\r\n\r\n    \r\n      IF Object_id('tempdb..#TMP_STREAM_POINT_OF_SALES') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #TMP_STREAM_POINT_OF_SALES\r\n        END\r\n\r\n\t\tIF Object_id('tempdb..#R_DUPLICATES_TMP_STREAM_POINT_OF_SALES') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_DUPLICATES_TMP_STREAM_POINT_OF_SALES\r\n        END\r\n\r\n      SELECT *\r\n      INTO   #TMP_STREAM_POINT_OF_SALES\r\n      FROM   (SELECT\t\t ORGANIZACION    'ORGANIZATION',\r\n                             C_SUBINVENTARIO 'C_SUBINVENTORY',\r\n                             SUPER_CANAL     'SUPER_CHANNEL',\r\n                             CANAL_DP        'CHANNEL_DP',\r\n                             CLIENTE         'CUSTOMER',\r\n                             TOP_CANAL       'TOP_CHANNEL',\r\n                             TIPO_CANAL      'CHANNEL_TYPE',\r\n                             ESTADO          'STATE',\r\n                             FULLFILMENT     'FULLFILMENT',\r\n                             REGION          'REGION',\r\n                             [NOMBRE PDV]    'STORE_NAME',\r\n                             CLASIFICACION   'CLASIFICATION',\r\n                             [BASE APLICA]   'BASE_APPLIES',\r\n                             'INSERT'        'METADATAACTION',\r\n                             '0'             'METADATAISUPDATE',\r\n                             NULL            'METADATAROW_ID',\r\n                             FILE_NAME,\r\n                             CREATE_DATE\r\n              FROM   LANDING.DEV_INV_CON_CAT_PDV) Q\r\n\r\n      /** Update quotation marks **/\r\n      UPDATE #TMP_STREAM_POINT_OF_SALES\r\n      SET    ORGANIZATION = Replace(ORGANIZATION, '\"', '')\r\n      WHERE  ORGANIZATION LIKE '%\"%'\r\n\r\n      UPDATE #TMP_STREAM_POINT_OF_SALES\r\n      SET    C_SUBINVENTORY = Replace(C_SUBINVENTORY, '\"', '')\r\n      WHERE  C_SUBINVENTORY LIKE '%\"%'\r\n\r\n      /**SQL_DEL_DUPLICATES**/\r\n      --Dvazquez 2022-11-09 (Corrección de Substring para catálogo PDV)\r\n      Select *\r\n\t  into   #R_DUPLICATES_TMP_STREAM_POINT_OF_SALES\r\n      FROM   (SELECT *,\r\n                     ROW_NUMBER()\r\n                       OVER (\r\n                         PARTITION BY Substring(ORGANIZATION, 1, 3), --corrección en 1\r\n                       C_SUBINVENTORY,\r\n                       [FILE_NAME]\r\n                         ORDER BY [FILE_NAME], [CREATE_DATE] DESC) AS ROW_NUM\r\n              FROM   #TMP_STREAM_POINT_OF_SALES) P\r\n      WHERE  P.ROW_NUM = 1\r\n\r\n\t   TRUNCATE TABLE Landing.DEV_INV_SALESCHANNEL \r\n\r\n      /**SQL UPDATE SALESCHANNEL**/\r\n      MERGE INTO Landing.DEV_INV_SALESCHANNEL AS T\r\n      USING (SELECT SP.*,\r\n                    G.ID GEOGRAPHICADDRESS_ID\r\n\t\t\t\t\t\r\n             FROM   #R_DUPLICATES_TMP_STREAM_POINT_OF_SALES SP \r\n                    INNER JOIN Landing.DEV_INV_GEOGRAPHICADDRESS G\r\n                            ON SP.[STATE] = G.STATEORPROVINCE\r\n                               AND SP.REGION = G.REGION\r\n\t\t\t\t\t\tWHERE  NOT ( METADATAACTION IN ( 'DELETE', 'UPDATE' )\r\n                          AND METADATAISUPDATE = '0' )\r\n                               AND BASE_APPLIES LIKE '%INVENTORY%') AS S\r\n      ON S.ORGANIZATION = T.NAME\r\n         AND S.C_SUBINVENTORY = T.SUBINVENTORY\r\n      WHEN MATCHED THEN\r\n        UPDATE SET T.SUPER_CHANNEL = S.SUPER_CHANNEL,\r\n                   T.CHANNEL_DP = S.CHANNEL_DP,\r\n                   T.CUSTOMER = S.CUSTOMER,\r\n                   T.TOP_CHANNEL = S.TOP_CHANNEL,\r\n                   T.CHANNEL_TYPE = S.CHANNEL_TYPE,\r\n                   T.STORE_NAME = S.FULLFILMENT,\r\n                   T.GEOGRAPHIC_ADDRESS_ID = S.GEOGRAPHICADDRESS_ID\r\n      WHEN NOT MATCHED THEN\r\n        INSERT( ID,\r\n                NAME,\r\n                SUBINVENTORY,\r\n                CHANNEL_DP,\r\n                CHANNEL_TYPE,\r\n                DATA_SOURCE_TYPE,\r\n                CUSTOMER,\r\n                DATE_NB,\r\n                DISTRUBUTOR_NAME,\r\n                END_DATETIME,\r\n                EXECUTIVE_CHANNEL,\r\n                DESCRIPTION,\r\n                GEOGRAPHIC_ADDRESS_ID,\r\n                ID_PDV,\r\n                PLAZA_PDV,\r\n                SALES_TYPE,\r\n                START_DATETIME,\r\n                STATUS,\r\n                STORE_NAME,\r\n                SUB_CHANNEL,\r\n                SUPER_CHANNEL,\r\n                TOP_CHANNEL,\r\n                PROCESS_TYPE,\r\n                CLASSIFICATION,\r\n                INVENTORY_TYPE,\r\n                CREATED_DATE,\r\n                MODIFIED_DATE,\r\n                [USER] )\r\n        VALUES( Newid(),\r\n                S.ORGANIZATION,\r\n                S.C_SUBINVENTORY,\r\n                S.CHANNEL_DP,\r\n                S.CHANNEL_TYPE,\r\n                '',\r\n                S.CUSTOMER,\r\n                CURRENT_TIMESTAMP,\r\n                '',\r\n                CURRENT_TIMESTAMP,\r\n                '',\r\n                '',\r\n                S.GEOGRAPHICADDRESS_ID,\r\n                '',\r\n                '',\r\n                '',\r\n                CURRENT_TIMESTAMP,\r\n                '',\r\n                S.FULLFILMENT,\r\n                '',\r\n                S.SUPER_CHANNEL,\r\n                S.TOP_CHANNEL,\r\n                'Inventory',\r\n                S.CLASIFICATION,\r\n                'Stock',\r\n                CURRENT_TIMESTAMP,\r\n                CURRENT_TIMESTAMP,\r\n                'dashboard_mexico' );\r\n\r\n\t\t\t\tTRUNCATE TABLE  Landing.DEV_INV_CON_REF_SALESCHANNEL \r\n\r\n      MERGE INTO Landing.DEV_INV_CON_REF_SALESCHANNEL AS T\r\n      USING (SELECT SP.*,\r\n                    G.ID GEOGRAPHICADDRESS_ID\r\n             FROM   #R_DUPLICATES_TMP_STREAM_POINT_OF_SALES SP\r\n                    INNER JOIN Landing.DEV_INV_GEOGRAPHICADDRESS G\r\n                            ON SP.STATE = G.STATEORPROVINCE\r\n                               AND SP.REGION = G.REGION\r\n                               AND BASE_APPLIES LIKE '%ACC%') AS S\r\n      ON S.ORGANIZATION = T.NAME\r\n         AND S.C_SUBINVENTORY = T.SUBINVENTORY\r\n         AND T.PROCESS_TYPE = 'Accessory'\r\n      WHEN MATCHED THEN\r\n        UPDATE SET T.SUPER_CHANNEL = S.SUPER_CHANNEL,\r\n                   T.CHANNEL_DP = S.CHANNEL_DP,\r\n                   T.CUSTOMER = S.CUSTOMER,\r\n                   T.TOP_CHANNEL = S.TOP_CHANNEL,\r\n                   T.CHANNEL_TYPE = S.CHANNEL_TYPE,\r\n                   T.STORE_NAME = S.FULLFILMENT,\r\n                   T.GEOGRAPHIC_ADDRESS_ID = S.GEOGRAPHICADDRESS_ID\r\n      WHEN NOT MATCHED THEN\r\n        INSERT( ID,\r\n                NAME,\r\n                SUBINVENTORY,\r\n                CHANNEL_DP,\r\n                CHANNEL_TYPE,\r\n                DATA_SOURCE_TYPE,\r\n                CUSTOMER,\r\n                DATE_NB,\r\n                DISTRUBUTOR_NAME,\r\n                END_DATETIME,\r\n                EXECUTIVE_CHANNEL,\r\n                DESCRIPTION,\r\n                GEOGRAPHIC_ADDRESS_ID,\r\n                ID_POINT_OF_SALE,\r\n                POINT_OF_SALE_PLAZA,\r\n                SALES_TYPE,\r\n                START_DATETIME,\r\n                STATUS,\r\n                STORE_NAME,\r\n                SUB_CHANNEL,\r\n                SUPER_CHANNEL,\r\n                TOP_CHANNEL,\r\n                PROCESS_TYPE,\r\n                CLASSIFICATION,\r\n                INVENTORY_TYPE,\r\n                CREATED_DATE,\r\n                MODIFIED_DATE,\r\n                [USER] )\r\n        VALUES( Newid(),\r\n                S.ORGANIZATION,\r\n                S.C_SUBINVENTORY,\r\n                S.CHANNEL_DP,\r\n                S.CHANNEL_TYPE,\r\n                '',\r\n                S.CUSTOMER,\r\n                CURRENT_TIMESTAMP,\r\n                '',\r\n                CURRENT_TIMESTAMP,\r\n                '',\r\n                '',\r\n                S.GEOGRAPHICADDRESS_ID,\r\n                '',\r\n                '',\r\n                '',\r\n                CURRENT_TIMESTAMP,\r\n                '',\r\n                S.FULLFILMENT,\r\n                '',\r\n                S.SUPER_CHANNEL,\r\n                S.TOP_CHANNEL,\r\n                'Accessory',\r\n                S.CLASIFICATION,\r\n                'Consumption',\r\n                CURRENT_TIMESTAMP,\r\n                CURRENT_TIMESTAMP,\r\n                'dashboard_mexico' );\r\n\r\n\t\t\t\tTRUNCATE TABLE Landing.DEV_INV_CON_REF_SALESCHANNEL \r\n\r\n      /* SQL UPDATE REF_SALESCHANNEL */\r\n      MERGE INTO Landing.DEV_INV_CON_REF_SALESCHANNEL AS T\r\n      USING (SELECT SP.*,\r\n                    G.ID GEOGRAPHICADDRESS_ID\r\n             FROM   #R_DUPLICATES_TMP_STREAM_POINT_OF_SALES SP\r\n                    INNER JOIN Landing.DEV_INV_GEOGRAPHICADDRESS G\r\n                            ON SP.STATE = G.STATEORPROVINCE\r\n                               AND SP.REGION = G.REGION\r\n                               AND BASE_APPLIES LIKE '%NARANJA%') AS S\r\n      ON S.ORGANIZATION = T.NAME\r\n         AND S.C_SUBINVENTORY = T.SUBINVENTORY\r\n         AND T.PROCESS_TYPE = 'Handsets_Consumption_Naranja'\r\n      WHEN MATCHED THEN\r\n        UPDATE SET T.SUPER_CHANNEL = S.SUPER_CHANNEL,\r\n                   T.CHANNEL_DP = S.CHANNEL_DP,\r\n                   T.CUSTOMER = S.CUSTOMER,\r\n                   T.TOP_CHANNEL = S.TOP_CHANNEL,\r\n                   T.CHANNEL_TYPE = S.CHANNEL_TYPE,\r\n                   T.STORE_NAME = S.FULLFILMENT,\r\n                   T.GEOGRAPHIC_ADDRESS_ID = S.GEOGRAPHICADDRESS_ID\r\n      WHEN NOT MATCHED THEN\r\n        INSERT ( ID,\r\n                 NAME,\r\n                 SUBINVENTORY,\r\n                 CHANNEL_DP,\r\n                 CHANNEL_TYPE,\r\n                 DATA_SOURCE_TYPE,\r\n                 CUSTOMER,\r\n                 DATE_NB,\r\n                 DISTRUBUTOR_NAME,\r\n                 END_DATETIME,\r\n                 EXECUTIVE_CHANNEL,\r\n                 DESCRIPTION,\r\n                 GEOGRAPHIC_ADDRESS_ID,\r\n                 ID_POINT_OF_SALE,\r\n                 POINT_OF_SALE_PLAZA,\r\n                 SALES_TYPE,\r\n                 START_DATETIME,\r\n                 STATUS,\r\n                 STORE_NAME,\r\n                 SUB_CHANNEL,\r\n                 SUPER_CHANNEL,\r\n                 TOP_CHANNEL,\r\n                 PROCESS_TYPE,\r\n                 CLASSIFICATION,\r\n                 INVENTORY_TYPE,\r\n                 CREATED_DATE,\r\n                 MODIFIED_DATE,\r\n                 [USER] )\r\n        VALUES( Newid(),\r\n                S.ORGANIZATION,\r\n                S.C_SUBINVENTORY,\r\n                S.CHANNEL_DP,\r\n                S.CHANNEL_TYPE,\r\n                '',\r\n                S.CUSTOMER,\r\n                CURRENT_TIMESTAMP,\r\n                '',\r\n                CURRENT_TIMESTAMP,\r\n                '',\r\n                '',\r\n                S.GEOGRAPHICADDRESS_ID,\r\n                '',\r\n                '',\r\n                '',\r\n                CURRENT_TIMESTAMP,\r\n                '',\r\n                S.FULLFILMENT,\r\n                '',\r\n                S.SUPER_CHANNEL,\r\n                S.TOP_CHANNEL,\r\n                'Handsets_Consumption_Naranja',\r\n                S.CLASIFICATION,\r\n                'Consumption',\r\n                CURRENT_TIMESTAMP,\r\n                CURRENT_TIMESTAMP,\r\n                'dashboard_mexico' );\r\n\r\n\t\t\t\tTRUNCATE TABLE Landing.DEV_INV_CON_REF_SALESCHANNEL\r\n\r\n      MERGE INTO Landing.DEV_INV_CON_REF_SALESCHANNEL AS T\r\n      USING (SELECT SP.*,\r\n                    G.ID GEOGRAPHICADDRESS_ID\r\n             FROM   #R_DUPLICATES_TMP_STREAM_POINT_OF_SALES SP\r\n                    INNER JOIN Landing.DEV_INV_GEOGRAPHICADDRESS G\r\n                            ON SP.STATE = G.STATEORPROVINCE\r\n                               AND SP.REGION = G.REGION\r\n                               AND BASE_APPLIES LIKE '%ROJO%') AS S\r\n      ON S.ORGANIZATION = T.NAME\r\n         AND S.C_SUBINVENTORY = T.SUBINVENTORY\r\n         AND T.PROCESS_TYPE = 'Handsets_Consumption_Rojo_DNE'\r\n      WHEN MATCHED THEN\r\n        UPDATE SET T.SUPER_CHANNEL = S.SUPER_CHANNEL,\r\n                   T.CHANNEL_DP = S.CHANNEL_DP,\r\n                   T.CUSTOMER = S.CUSTOMER,\r\n                   T.TOP_CHANNEL = S.TOP_CHANNEL,\r\n                   T.CHANNEL_TYPE = S.CHANNEL_TYPE,\r\n                   T.STORE_NAME = S.FULLFILMENT,\r\n                   T.GEOGRAPHIC_ADDRESS_ID = S.GEOGRAPHICADDRESS_ID\r\n      WHEN NOT MATCHED THEN\r\n        INSERT( ID,\r\n                NAME,\r\n                SUBINVENTORY,\r\n                CHANNEL_DP,\r\n                CHANNEL_TYPE,\r\n                DATA_SOURCE_TYPE,\r\n                CUSTOMER,\r\n                DATE_NB,\r\n                DISTRUBUTOR_NAME,\r\n                END_DATETIME,\r\n                EXECUTIVE_CHANNEL,\r\n                DESCRIPTION,\r\n                GEOGRAPHIC_ADDRESS_ID,\r\n                ID_POINT_OF_SALE,\r\n                POINT_OF_SALE_PLAZA,\r\n                SALES_TYPE,\r\n                START_DATETIME,\r\n                STATUS,\r\n                STORE_NAME,\r\n                SUB_CHANNEL,\r\n                SUPER_CHANNEL,\r\n                TOP_CHANNEL,\r\n                PROCESS_TYPE,\r\n                CLASSIFICATION,\r\n                INVENTORY_TYPE,\r\n                CREATED_DATE,\r\n                MODIFIED_DATE,\r\n                [USER] )\r\n        VALUES ( Newid(),\r\n                 S.ORGANIZATION,\r\n                 S.C_SUBINVENTORY,\r\n                 S.CHANNEL_DP,\r\n                 S.CHANNEL_TYPE,\r\n                 '',\r\n                 S.CUSTOMER,\r\n                 CURRENT_TIMESTAMP,\r\n                 '',\r\n                 CURRENT_TIMESTAMP,\r\n                 '',\r\n                 '',\r\n                 S.GEOGRAPHICADDRESS_ID,\r\n                 '',\r\n                 '',\r\n                 '',\r\n                 CURRENT_TIMESTAMP,\r\n                 '',\r\n                 S.FULLFILMENT,\r\n                 '',\r\n                 S.SUPER_CHANNEL,\r\n                 S.TOP_CHANNEL,\r\n                 'Handsets_Consumption_Rojo_DNE',\r\n                 S.CLASIFICATION,\r\n                 'Consumption',\r\n                 CURRENT_TIMESTAMP,\r\n                 CURRENT_TIMESTAMP,\r\n                 'dashboard_mexico' );\r\n\r\n  IF Object_id('tempdb..#R_TableHTML') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_TableHTML\r\n        END\r\n\r\n\t\t  IF Object_id('tempdb..#R_TableHTML2') IS NOT NULL\r\n        BEGIN\r\n            DROP TABLE #R_TableHTML2\r\n        END\r\n\r\n\r\n\r\n\r\nselect Row_number() over(order by (select 1)) as cont,* into #R_TableHTML from(\tselect  concat('<tr>',Entity,[Name],[FILE_NAME],STOCK_INVENTORY_DATE,'</tr>') as FULL_QUERY \r\nfrom (\r\n\tSELECT concat('<td>', ENTITY,'</td>') 'ENTITY',\r\n\tconcat('<td>',[NAME],'</td>') 'NAME',\r\n\tconcat('<td>',  Replace(Replace(Replace([QUERY_NAME],'DEV_',''),'QA_',''),'PRO',''),'</td>') 'FILE_NAME' ,\r\n\tconcat('<td>',STOCK_INVENTORY_DATE,'</td>')  'STOCK_INVENTORY_DATE' \r\n\t FROM\r\n\t\t(\r\n\t\t\t\tSELECT DISTINCT 'SKU' ENTITY, SSH.ARTICULO AS [NAME],SSH.QUERY_NAME,CREATE_DATE STOCK_INVENTORY_DATE FROM #R_INV_TMP_STREAM_SERIALS_IN_TRANSIT SSH\r\n\t\t\t\t\t  LEFT OUTER JOIN\r\n\t\t\t\t\t  LANDING.DEV_INV_PHYSICAL_RESOURCE_SPECIFICATION -----SELECT TOP 10 * FROM #R_INV_TMP_STREAM_SERIALS_IN_TRANSIT\r\n\t\t\t\t\t  PT\r\n\t\t\t\t\t\t\t\t   ON PT.STOCK_KEEPING_UNIT = Upper(TRIM(SSH.ARTICULO))\r\n\t\t\t   WHERE  PT.STOCK_KEEPING_UNIT IS NULL\r\n\t\t\t   UNION\r\n\t\t\t   SELECT DISTINCT 'SALES CHANNEL'      ENTITY,\r\n\t\t\t\t\t\t\t   SSH.ALMACEN_ORIGEN NAME,\r\n\t\t\t\t\t\t\t   SSH.QUERY_NAME,\r\n\t\t\t\t\t\t\t   CREATE_DATE          STOCK_INVENTORY_DATE\r\n                         \r\n\t\t\t   FROM   #R_INV_TMP_STREAM_SERIALS_IN_TRANSIT SSH\r\n\t\t\t\t\t  LEFT OUTER JOIN [LANDING].[DEV_INV_SALESCHANNEL] SC\r\n\t\t\t\t\t\t\t\t   ON Substring(SC.NAME, 1, 3) =\r\n\t\t\t\t\t\t\t\t\t  Substring(SSH.ALMACEN_ORIGEN, 1, 3)\r\n\t\t\t   WHERE  SC.NAME IS NULL\r\n\t\t\t\t\tUNION\r\n\t\t\t\tSELECT DISTINCT 'SALES CHANNEL'           ENTITY,\r\n\t\t\t\t\t\t\t\tSSH.ALMACEN_DESTINO NAME,\r\n\t\t\t\t\t\t\t\tSSH.QUERY_NAME,\r\n\t\t\t\t\t\t\t\tCREATE_DATE               STOCK_INVENTORY_DATE\r\n\t\t\t\tFROM   #R_INV_TMP_STREAM_SERIALS_IN_TRANSIT SSH\r\n\t\t\t\t\t\tLEFT OUTER JOIN [LANDING].[DEV_INV_SALESCHANNEL] SC\r\n\t\t\t\t\t\t\t\t\tON Substring(SC.NAME, 1, 3) =\r\n\t\t\t\t\t\t\t\t\t\tSubstring(SSH.ALMACEN_DESTINO, 1, 3)\r\n\t\t\t\tWHERE  SC.NAME IS NULL\r\n\r\n\t\t\t\tUNION\r\n\t\t\r\n\t\t\t SELECT DISTINCT 'SKU'       ENTITY,\r\n\t\t\t\t\t\t\t   SSH.ARTICULO      NAME,\r\n\t\t\t\t\t\t\t   SSH.QUERY_NAME,\r\n\t\t\t\t\t\t\t   CREATE_DATE 'STOCK_INVENTORY_DATE'\r\n                     \r\n\t\t\t  FROM   #R_INV_TMP_STREAM_SERIALS_IN_PENDING SSH\r\n\t\t\t\t\t LEFT OUTER JOIN\r\n\t\t\t\t\t [LANDING].[DEV_INV_PHYSICAL_RESOURCE_SPECIFICATION]\r\n\t\t\t\t\t PT\r\n\t\t\t\t\t\t\t\t  ON PT.STOCK_KEEPING_UNIT = Upper(TRIM(SSH.ARTICULO))\r\n\t\t\t  WHERE  PT.STOCK_KEEPING_UNIT IS NULL\r\n\t\t\t  UNION\r\n\t\t\t  SELECT DISTINCT 'SALES CHANNEL'      ENTITY,\r\n\t\t\t\t\t\t\t  SSH.ALMACEN_ORIGEN NAME,\r\n\t\t\t\t\t\t\t  SSH.QUERY_NAME,\r\n\t\t\t\t\t\t\t  CREATE_DATE          'STOCK_INVENTORY_DATE'\r\n    \r\n\t\t\t   FROM   #R_INV_TMP_STREAM_SERIALS_IN_PENDING SSH\r\n\t\t\t\t\t  LEFT OUTER JOIN [LANDING].[DEV_INV_SALESCHANNEL] SC\r\n\t\t\t\t\t\t\t\t   ON Substring(SC.NAME, 1, 3) =\r\n\t\t\t\t\t\t\t\t\t  Substring(SSH.ALMACEN_ORIGEN, 1, 3)\r\n\t\t\t   WHERE  SC.NAME IS NULL\r\n\r\n\t\t\t   UNION\r\n\t\t\t   SELECT DISTINCT 'SALES CHANNEL'           ENTITY,\r\n\t\t\t\t\t\t\t   SSH.ALMACEN_DESTINO NAME,\r\n\t\t\t\t\t\t\t   SSH.QUERY_NAME,\r\n\t\t\t\t\t\t\t   CREATE_DATE               'STOCK_INVENTORY_DATE'\r\n                    \r\n\t\t\t   FROM   #R_INV_TMP_STREAM_SERIALS_IN_PENDING SSH\r\n\t\t\t\t\t  LEFT OUTER JOIN [LANDING].[DEV_INV_SALESCHANNEL] SC\r\n\t\t\t\t\t\t\t\t   ON Substring(SC.NAME, 1, 3) =\r\n\t\t\t\t\t\t\t\t\t  Substring(SSH.ALMACEN_DESTINO, 1, 3)\r\n\t\t\t   WHERE  SC.NAME IS NULL\r\n\t\t\t   \r\n\t\t\t   UNION\r\n\r\n\t\t\t   SELECT DISTINCT 'SALES CHANNEL'       ENTITY,\r\n\t\t\t\t\t\t\t   SSH.NOMBRE_ORGANIZACION NAME,\r\n\t\t\t\t\t\t\t   SSH.QUERY_NAME,\r\n\t\t\t\t\t\t\t   CREATE_DATE           STOCK_INVENTORY_DATE\r\n\t\t\t   FROM   #R_INV_TMP_STREAM_STOCK_ON_HAND SSH\r\n\t\t\t\t\t  LEFT OUTER JOIN [LANDING].[DEV_INV_SALESCHANNEL] SC\r\n\t\t\t\t\t\t\t\t   ON Substring(SC.NAME, 1, 3) =\r\n\t\t\t\t\t\t\t\t\t  Substring(SSH.NOMBRE_ORGANIZACION, 1, 3)\r\n\t\t\t   WHERE  SC.NAME IS NULL \r\n\t\t\t   UNION\r\n\t\t\t   SELECT DISTINCT 'SKU'       ENTITY,\r\n\t\t\t\t\t\t\t   SSH.CODIGO_EQUIPO     NAME,\r\n\t\t\t\t\t\t\t   SSH.QUERY_NAME,\r\n\t\t\t\t\t\t\t   CREATE_DATE STOCK_INVENTORY_DATE\r\n\t\t\t\tFROM   #R_INV_TMP_STREAM_STOCK_ON_HAND SSH\r\n\t\t\t\t\t  LEFT OUTER JOIN\r\n\t\t\t\t\t  [LANDING].[DEV_INV_PHYSICAL_RESOURCE_SPECIFICATION]\r\n\t\t\t\t\t  PT\r\n\t\t\t\t\t\t\t\t   ON PT.STOCK_KEEPING_UNIT = Upper(TRIM(SSH.CODIGO_EQUIPO))\r\n\t\t\t   WHERE  PT.STOCK_KEEPING_UNIT IS NULL \r\n\t\t\t   UNION\r\n\t\t\t   SELECT DISTINCT 'SALES CHANNEL'  ENTITY,\r\n\t\t\t\t\t\t\t   SSK.ORGANIZACION  NAME,\r\n\t\t\t\t\t\t\t   SSK.FILE_NAME,\r\n\t\t\t\t\t\t\t   CREATE_DATE      STOCK_INVENTORY_DATE\r\n\t\t\t\tFROM   #R_INV_TMP_STREAM_STOCK_ON_CHAINS SSK\r\n\t\t\t\t\t  LEFT OUTER JOIN [LANDING].[DEV_INV_SALESCHANNEL] SC\r\n\t\t\t\t\t\t\t\t   ON Substring(SC.NAME, 1, 3) =\r\n\t\t\t\t\t\t\t\t\t  Substring(SSK.ORGANIZACION, 1, 3)\r\n\t\t\t   WHERE  SC.NAME IS NULL \r\n\t\t\t   UNION\r\n\t\t\t   SELECT DISTINCT 'SKU'       ENTITY,\r\n\t\t\t\t\t\t\t   SSK.SKU     NAME,\r\n\t\t\t\t\t\t\t   SSK.FILE_NAME,\r\n\t\t\t\t\t\t\t   CREATE_DATE STOCK_INVENTORY_DATE                    \r\n\t\t\t   FROM   #R_INV_TMP_STREAM_STOCK_ON_CHAINS SSK\r\n\t\t\t\t\t  LEFT OUTER JOIN\r\n\t\t\t\t\t  [LANDING].[DEV_INV_PHYSICAL_RESOURCE_SPECIFICATION]\r\n\t\t\t\t\t  PT\r\n\t\t\t\t\t\t\t\t   ON PT.STOCK_KEEPING_UNIT = Upper(TRIM(SSK.SKU))\r\n\t\t\t   WHERE  PT.STOCK_KEEPING_UNIT IS NULL\r\n\t\t\t\r\n\t\t\t   \t\t\t   \r\n\t\t\t)T\r\n\t\t\t--WHERE QUERY_NAME NOT LIKE 'DEV_INV%'\r\n\t\t\tGROUP BY ENTITY,[NAME],QUERY_NAME,[STOCK_INVENTORY_DATE]\r\n\t\t)L\r\n\t\tGROUP BY ENTITY,[NAME],[FILE_NAME],[STOCK_INVENTORY_DATE]\r\n\t\t\t\r\n)R\t\t\r\n\t\t--UNION\r\n\t\t\r\n select Row_number() over(order by (select 1)) as cont,* into #R_TableHTML2  from ( \t\r\n\t\tselect concat('<tr>',Entity,[Name],[FILE_NAME],STOCK_INVENTORY_DATE,'</tr>') as FULL_QUERY from (\r\n\tSELECT concat('<td>', ENTITY,'</td>') 'ENTITY',\r\n\tconcat('<td>',[NAME],'</td>') 'NAME',\r\n\tconcat('<td>',  Replace(Replace(Replace([QUERY_NAME],'DEV_',''),'QA_',''),'PRO',''),'</td>') 'FILE_NAME' ,\r\n\tconcat('<td>',STOCK_INVENTORY_DATE,'</td>')  'STOCK_INVENTORY_DATE' \r\n\t FROM\r\n\t\t(\r\n\t\t\t\t\r\n\t\t\t -----------------------------------------CONSUMOS-------------------------------\r\n\t\t\t --------------------------------------------------------------------------------\r\n\t\t\t --------------------------------------------------------------------------------\t\t\t \r\n\t\t\t    \r\n\t\t\t    SELECT DISTINCT 'SKU'       ENTITY,\r\n\t\t\t\t\t\t\t\tSSH.CODE    NAME,\r\n\t\t\t\t\t\t\t\tSSH.[QUERY_NAME] as QUERY_NAME,\r\n\t\t\t\t\t\t\t\tCREATE_DATE STOCK_INVENTORY_DATE\r\n\t\t\t\t\t\t\t\t\r\n\t\t\t\tFROM   #R_INV_TMP_STREAM_TRANSACTION_REPORT SSH\r\n\t\t\t\t\tLEFT OUTER JOIN LANDING.DEV_INV_PHYSICAL_RESOURCE_SPECIFICATION PT\r\n\t\t\t\t\t\t\t\t\tON PT.STOCK_KEEPING_UNIT = Upper(TRIM(SSH.CODE))\r\n\t\t\t\tWHERE  PT.STOCK_KEEPING_UNIT IS NULL\t\t\t-----ESTE WHERE NO INSERTA DATOS \r\n\t\t\t\tUNION\r\n\t\t\t\tSELECT DISTINCT 'SALES CHANNEL'       ENTITY,\r\n\t\t\t\t\t\t\t\tSSH.ORGANIZATION_NAME NAME,\r\n\t\t\t\t\t\t\t\tSSH.[QUERY_NAME] as QUERY_NAME,\r\n\t\t\t\t\t\t\t\tCREATE_DATE           STOCK_INVENTORY_DATE\r\n\t\t\t\tFROM   #R_INV_TMP_STREAM_TRANSACTION_REPORT SSH\r\n\t\t\t\t\tLEFT OUTER JOIN LANDING.DEV_INV_SALESCHANNEL SC\r\n\t\t\t\t\t\t\t\t\tON Substring(SC.NAME, 1, 3) =\r\n\t\t\t\t\t\t\t\t\tSubstring(SSH.ORGANIZATION_NAME, 1, 3)\r\n\t\t\t\tWHERE  SC.NAME IS NULL\r\n\t\t\t\t\r\n\t\t\t\tUNION\r\n\t\t\t\t\r\n\t\t\t\t SELECT DISTINCT 'SKU'       ENTITY,\r\n                      SSH.CODE    NAME,\r\n                      SSH.QUERY_NAME,\r\n                      CREATE_DATE STOCK_INVENTORY_DATE\r\n\t\t\t\t\t  \r\n\t\t\t\tFROM   #R_INV_TMP_STREAM_TRANSACTION_REPORT SSH\r\n\t\t\t\t\t\tLEFT OUTER JOIN LANDING.DEV_INV_PHYSICAL_RESOURCE_SPECIFICATION PT\r\n\t\t\t\t\t\t\t\t\tON PT.STOCK_KEEPING_UNIT = Upper(TRIM(SSH.CODE))\r\n\t\t\t\tWHERE  PT.STOCK_KEEPING_UNIT IS NULL\t\t\t-----ESTE WHERE NO INSERTA DATOS \r\n\t\t\t\tUNION\r\n\t\t\t\tSELECT DISTINCT 'SALES CHANNEL'       ENTITY,\r\n\t\t\t\t\t\t\t\tSSH.ORGANIZATION_NAME NAME,\r\n\t\t\t\t\t\t\t\tSSH.QUERY_NAME,\r\n\t\t\t\t\t\t\t\tCREATE_DATE           STOCK_INVENTORY_DATE\r\n\t\t\t\tFROM   #R_INV_TMP_STREAM_TRANSACTION_REPORT SSH\r\n\t\t\t\t\t\tLEFT OUTER JOIN LANDING.DEV_INV_SALESCHANNEL SC\r\n\t\t\t\t\t\t\t\t\tON Substring(SC.NAME, 1, 3) =\r\n\t\t\t\t\t\t\t\t\t\tSubstring(SSH.ORGANIZATION_NAME, 1, 3)\r\n\t\t\t\tWHERE  SC.NAME IS NULL\r\n\t\t\t\t\r\n\t\t\t\tUNION\r\n\t\t\t\t\t\r\n\t\t\t\tSELECT DISTINCT 'PLANES'      ENTITY,\r\n\t\t\t\t\t\t\t\tSSH.RATE_PLAN NAME,\r\n\t\t\t\t\t\t\t\tSSH.FILE_NAME AS QUERY_NAME,\r\n\t\t\t\t\t\t\t\tCREATE_DATE   STOCK_INVENTORY_DATE\r\n\t\t\t\tFROM   #R_CON_TMP_STREAM_FILE_ORDERS SSH\r\n\t\t\t\t\t\tLEFT OUTER JOIN LANDING.DEV_CON_PRODUCTOFFERING PO\r\n\t\t\t\t\t\t\t\t\tON Upper(TRIM(PO.NAME)) = Upper(TRIM(SSH.RATE_PLAN))\r\n\t\t\t\tWHERE  PO.NAME IS NULL\r\n\t\t\t\t\r\n\t\t\t   --------------------------------------------------------------------------------\r\n\t\t\t   --------------------------------------------------------------------------------\r\n\t\t\t   --------------------------------------------------------------------------------\r\n\t\t\t   \t\t\t   \r\n\t\t\t)T2\r\n\t\t\t--WHERE QUERY_NAME NOT LIKE 'DEV_INV%'\r\n\t\t\tGROUP BY ENTITY,[NAME],QUERY_NAME,[STOCK_INVENTORY_DATE]\r\n\t\t)L2\r\n\t\tGROUP BY ENTITY,[NAME],[FILE_NAME],[STOCK_INVENTORY_DATE]\r\n\t\t\t\t\r\n\t)R2\r\n\r\n--inventarios\r\n\tdeclare @i int = 0,\r\n\t@conteoT int = (select count(*) from #R_TableHTML),\r\n\t@val nvarchar(200),\r\n    @var_Max varchar (max) = N''\r\n\r\n\tWHILE @conteoT > @i\r\n\t\tBEGIN\r\n\t\t\tset @i = @i+1\r\n\t\t\tSET @val = (select FULL_QUERY FROM #R_TableHTML WHERE cont = @i)\r\n\t\t\tset @var_Max = @var_Max + @val\r\n\t    END\r\n\r\n--consumos\r\n\t\tdeclare @i2 int = 0,\r\n\t@conteoT2 int = (select count(*) from #R_TableHTML2),\r\n\t@val2 nvarchar(200),\r\n    @var_Max2 varchar (max) = N''\r\n\r\n\tWHILE @conteoT2 > @i2\r\n\t\tBEGIN\r\n\t\t\tset @i2 = @i2+1\r\n\t\t\tSET @val2 = (select FULL_QUERY FROM #R_TableHTML2 WHERE cont = @i2)\r\n\t\t\tset @var_Max2 = @var_Max2 + @val2\r\n\t    END\r\n\r\n\r\n\r\n\t\tif @var_Max IS NOT NULL\r\n\t\tBEGIN \r\n\t\tSET @conteoT = @conteoT + 1\r\n\t\tEND\r\n\t\t\t\r\n\t\t\t\r\n\r\ndeclare @con int = (select count(*) from dbo.MigrationTable where processname = 'ADLSToSynapse' and active = '1' and left(Source_DirectoryFile,3) = 'con')\r\ndeclare @inv int = (select count(*) from dbo.MigrationTable where processname = 'ADLSToSynapse' and active = '1' and left(Source_DirectoryFile,3) = 'inv')\r\n\r\ndeclare @varDateChns date = (select distinct create_date from [Landing].[DEV_inv_cadenas])\r\ndeclare @conHistInv int = (select  count(*) from  Landing.DEV_INV_INVENTORY_STOCK_SUMMARY_REPORT_STATUS where cast(stock_inventory_date as date) = @varDateChns and Process_Type = 'INVENTORY')\r\n\r\n\r\nIF  @inv > 0 and  @con > 0 \r\nbegin\r\n\t\tSELECT   @var_Max 'FULL_QUERY', cast(@conteoT as nvarchar(10)) 'CONTEOF','INV' AS MODULO\r\n\t\tunion\r\n\t    SELECT   @var_Max2 'FULL_QUERY', cast(@conteoT2 as nvarchar(10)) 'CONTEOF','CON' AS MODULO\r\nend\r\n\r\nif  @inv > 0 and  @con = 0 and @conHistInv = 0\r\nbegin\r\n\tSELECT   @var_Max 'FULL_QUERY', cast(@conteoT as nvarchar(10)) 'CONTEOF','INV' AS MODULO\r\nend\r\n\r\nif  @inv = 0 and @con > 0 \r\nbegin\r\n\tSELECT   @var_Max2 'FULL_QUERY', cast(@conteoT2 as nvarchar(10)) 'CONTEOF','CON' AS MODULO \r\nend\r\n\r\nif  @inv = 0 and @con = 0 \r\nbegin\r\n\tif @conHistInv = 0\r\n\t\tbegin\r\n\t\t\tSELECT   @var_Max 'FULL_QUERY', cast(@conteoT as nvarchar(10)) 'CONTEOF','INV' AS MODULO\r\n\t\t\tunion\r\n\t\t\tSELECT   @var_Max2 'FULL_QUERY', cast(@conteoT2 as nvarchar(10)) 'CONTEOF','CON' AS MODULO\r\n\t\tend\r\n\telse\r\n\t\tbegin\r\n\t\t\tSELECT   @var_Max 'FULL_QUERY', cast(0 as nvarchar(10)) 'CONTEOF','INV' AS MODULO\r\n\t\tend\r\nend",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Script bK",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "ForEach Exectute Master",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "LS_Synapse_init",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "NonQuery",
+							"text": "\r\n---QUERYS\r\n\r\nupdate [dbo].[MigrationTable] set active ='0'  where Processname ='ADLSToSynapse'\r\n\r\ndeclare @DataFull int = (select count(*) from [Landing].[DEV_INV_REPORTECANTIDADMANO_full] where Create_date in( select distinct Create_date  from [Landing].[DEV_INV_REPORTECANTIDADMANO]))\r\n\r\nIf @DataFull = 0\r\nbegin\r\n\t INSERT into  [Landing].[DEV_INV_REPORTECANTIDADMANO_full]\tSELECT * FROM  [Landing].[DEV_INV_REPORTECANTIDADMANO]\t\t\r\n\t INSERT into  [Landing].[DEV_INV_REPORTECANTIDADMANO2_full]\tSELECT * FROM  [Landing].[DEV_INV_REPORTECANTIDADMANO2]\t    \r\n\t INSERT into  [Landing].[DEV_INV_SERIESENPENDING_full]\t\tSELECT * FROM  [Landing].[DEV_INV_SERIESENPENDING]\t\t\t\r\n\t INSERT into  [Landing].[DEV_INV_SERIESENTRANSITO_full]\t\tSELECT * FROM  [Landing].[DEV_INV_SERIESENTRANSITO]\r\nend\r\n\r\n--CATALOGS\r\ndeclare @CADENAS_FULL int = (select count(*) from landing.DEV_INV_CADENAS_full\t\tWHERE Create_Date in(select create_date from [Landing].landing.DEV_INV_CADENAS))\t\t\r\nIF  @CADENAS_FULL\t= 0 \r\nBEGIN\r\n\tinsert into [Landing].[DEV_inv_cadenas_FULL]      SELECT *  from [Landing].[DEV_inv_cadenas]  \t\r\nEND\r\n\r\ndeclare @SKUS_DATE    NVARCHAR (12) = (select distinct create_date from [Landing].landing.DEV_INV_CON_CAT_SKUS)\r\nIF  @SKUS_DATE IS NOT NULL\r\nBEGIN\r\n\tDELETE [Landing].[DEV_INV_CON_CAT_SKUS_FULL]  WHERE create_date =  @SKUS_DATE\r\n\tinsert into [Landing].[DEV_INV_CON_CAT_SKUS_FULL] SELECT *  from [Landing].[DEV_INV_CON_CAT_SKUS]\r\nEND\r\ndeclare @PDV_DATE    NVARCHAR (12) = (select distinct create_date from [Landing].landing.DEV_INV_CON_CAT_PDV)\t\r\nIF  @PDV_DATE IS NOT NULL \r\nBEGIN\r\n\tDELETE [Landing].[DEV_INV_CON_CAT_PDV_FULL]  WHERE create_date =  @SKUS_DATE\r\n\tinsert into [Landing].[DEV_INV_CON_CAT_PDV_FULL]  SELECT *  from [Landing].[DEV_INV_CON_CAT_PDV]\r\nEND"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "ForEach Exectute Master",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GetInitRowsActive",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GetInitRowsActive').output.value",
+						"type": "Expression"
+					},
+					"batchCount": 1,
+					"activities": [
+						{
+							"name": "If Condition Exectute Master",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "SetvarRows",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "SetvarCount",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								},
+								{
+									"activity": "SetvarModulo",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@greater(int(variables('CountActivesFiles')), 1)",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "SPMaster",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[Landing].[usp_Master]",
+											"storedProcedureParameters": {
+												"Current_Day": {
+													"value": {
+														"value": "@utcnow('yyyy-MM-dd HH:mm:ss')",
+														"type": "Expression"
+													},
+													"type": "DateTime"
+												},
+												"Current_module": {
+													"value": {
+														"value": "@variables('varModulo')",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "LS_Synapse_init",
+											"type": "LinkedServiceReference"
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "SenMailFiles",
+										"type": "WebActivity",
+										"dependsOn": [
+											{
+												"activity": "SetVarListFiles",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"url": "https://logicappmailerror.azurewebsites.net:443/api/MailErrorLogicApp/triggers/manual/invoke?api-version=2022-05-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=mmjLVCt7mJzT20k9ROmq7FiQid4PwURkMWYg3vyRqVg",
+											"connectVia": {
+												"referenceName": "AutoResolveIntegrationRuntime",
+												"type": "IntegrationRuntimeReference"
+											},
+											"method": "POST",
+											"body": {
+												"value": "{\n    \"title\": \"ARCHIVOS FALTANTES\",\n    \"message\": \"EXISTEN ARCHIVOS POR CARGAR\",\n    \"color\": \"Green\",\n    \"size\": \"8px\",\n    \"LISTADEARTICULOSFALTANTES\": \"@{variables('body')}\",\n    \"PIPELINENAME\": \"AZURE DATA LAKE TO SYNAPSE\",\n    \"receiver\" : \"dvazquez@bside.com.mx\",\n    \"TIME\": \"@{convertTimeZone(utcNow(),'UTC', 'Central Standard Time (Mexico)')}\"\n    \n}",
+												"type": "Expression"
+											}
+										}
+									},
+									{
+										"name": "SetVarListFiles",
+										"type": "SetVariable",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"variableName": "body",
+											"value": {
+												"value": "@concat('<style>table, th, td {  border: 1px solid;}</style> <hr/><table><th>ENTITY</th><th>NAME</th><th>QUERY_NAME</th><th>STOCK_INVENTORY_DATE</th>'\t,variables('Full_Rows'),'</table><b>','</big></b><br/>Status: <b>Success</b><br/>')",
+												"type": "Expression"
+											}
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "SetvarRows",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Full_Rows",
+								"value": {
+									"value": "@item().FULL_QUERY ",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "SetvarCount",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "CountActivesFiles",
+								"value": {
+									"value": "@item().CONTEOF",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "SetvarModulo",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "varModulo",
+								"value": {
+									"value": "@item().MODULO",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"PipelineName": {
+				"type": "string",
+				"defaultValue": "Error"
+			},
+			"ErrorMessage": {
+				"type": "string",
+				"defaultValue": "Error"
+			},
+			"RunId": {
+				"type": "string",
+				"defaultValue": "Error"
+			}
+		},
+		"variables": {
+			"CountActivesFiles": {
+				"type": "String"
+			},
+			"body": {
+				"type": "String"
+			},
+			"Full_Rows": {
+				"type": "String"
+			},
+			"varModulo": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "PIP_Migration_Data"
+		},
+		"annotations": []
+	}
+}

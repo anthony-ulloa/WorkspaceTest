@@ -1,0 +1,73 @@
+{
+	"name": "PIP_LoadDataParquetToSynapse",
+	"properties": {
+		"activities": [
+			{
+				"name": "Dataflow_ADLS_TO_SNP",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "1.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "Dataflow_ADLSTONSP",
+						"type": "DataFlowReference",
+						"datasetParameters": {
+							"sourceADLSTOSNP": {
+								"C_Source_TableOrFile": {
+									"value": "@pipeline().parameters.P_Source_TableOrFile",
+									"type": "Expression"
+								}
+							},
+							"sinkADLSTOSNP": {
+								"C_Sink_TableOrFile": {
+									"value": "@pipeline().parameters.P_Sink_TableOrFile",
+									"type": "Expression"
+								},
+								"C_Sink_SchemaOrPath": {
+									"value": "@pipeline().parameters.P_Sink_SchemaOrPath",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"staging": {
+						"linkedService": {
+							"referenceName": "linkedServiceADLSG2",
+							"type": "LinkedServiceReference"
+						},
+						"folderPath": "input"
+					},
+					"compute": {
+						"coreCount": 16,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"parameters": {
+			"P_Sink_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Source_TableOrFile": {
+				"type": "string"
+			},
+			"P_Sink_TableOrFile": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "PIP_Migration_Data"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-09T17:11:21Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

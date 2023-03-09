@@ -1,0 +1,24 @@
+{
+	"name": "Trigger_Ini",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PIP_InitDataMigration",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 1440,
+				"startTime": "2023-01-13T13:09:00",
+				"timeZone": "Central Standard Time (Mexico)"
+			}
+		}
+	}
+}

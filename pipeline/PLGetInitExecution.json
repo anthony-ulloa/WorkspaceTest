@@ -1,0 +1,214 @@
+{
+	"name": "PLGetInitExecution",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Init Parameters",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_GetInitBDValues]",
+						"storedProcedureParameters": {
+							"ProcessName": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.ProcessName",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": true
+				}
+			},
+			{
+				"name": "Get Init Information",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get Init Parameters",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_GetInitInformation]",
+						"storedProcedureParameters": {
+							"ProcessName": {
+								"type": "String",
+								"value": {
+									"value": "@activity('Get Init Parameters').output.firstRow.ProcessName",
+									"type": "Expression"
+								}
+							},
+							"ProcessType": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.ProcessType",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Insert Execution Detail",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Init Information",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Init Information').output.value",
+						"type": "Expression"
+					},
+					"batchCount": 5,
+					"activities": [
+						{
+							"name": "Execution Detail SP",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_InsertExecutionDetail]",
+								"storedProcedureParameters": {
+									"Id_Execution": {
+										"value": {
+											"value": "@pipeline().RunId",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Id_MigrationTable": {
+										"value": {
+											"value": "@item().Id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"ProcessName": {
+										"value": {
+											"value": "@item().ProcessName",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Source_TableOrFile": {
+										"value": {
+											"value": "@item().Source_TableOrFile",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"ProcessType": {
+										"value": {
+											"value": "@pipeline().parameters.ProcessType",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_Synapse_init",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Ingest Data",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Insert Execution Detail",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PLDataIngestion",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ProcessName": {
+							"value": "@activity('Get Init Parameters').output.firstRow.ProcessName",
+							"type": "Expression"
+						},
+						"ProcessType": {
+							"value": "@pipeline().parameters.ProcessType",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"parameters": {
+			"ProcessName": {
+				"type": "string"
+			},
+			"ProcessType": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "00.Generics"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-18T18:07:53Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

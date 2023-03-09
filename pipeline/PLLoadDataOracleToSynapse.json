@@ -1,0 +1,359 @@
+{
+	"name": "PLLoadDataOracleToSynapse",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy Oracle To Synapse",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "OracleSource",
+						"oracleReaderQuery": {
+							"value": "@replace(pipeline().parameters.P_Source_Query,'\\r\\n',' ')",
+							"type": "Expression"
+						},
+						"partitionOption": "None",
+						"convertDecimalToInteger": false,
+						"queryTimeout": "02:00:00"
+					},
+					"sink": {
+						"type": "SqlDWSink",
+						"preCopyScript": {
+							"value": "@{concat('truncate table ',pipeline().parameters.P_Sink_SchemaOrPath,'.',pipeline().parameters.P_Sink_TableOrFile)}",
+							"type": "Expression"
+						},
+						"allowCopyCommand": true,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": true,
+					"stagingSettings": {
+						"linkedServiceName": {
+							"referenceName": "LS_ADLS_To_Synapse_STG",
+							"type": "LinkedServiceReference"
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DsSinkOracleToADLS",
+						"type": "DatasetReference",
+						"parameters": {
+							"C_C_Source_SchemaOrPath": {
+								"value": "@pipeline().parameters.P_Source_SchemaOrPath",
+								"type": "Expression"
+							},
+							"C_C_Source_TableOrFile": {
+								"value": "@pipeline().parameters.P_Source_TableOrFile",
+								"type": "Expression"
+							},
+							"C_C_Source_KV_Service": {
+								"value": "@pipeline().parameters.P_Source_KV_Service",
+								"type": "Expression"
+							},
+							"C_C_Source_KV_Secret": {
+								"value": "@pipeline().parameters.P_Source_KV_Secret",
+								"type": "Expression"
+							},
+							"P_HostName": {
+								"value": "@pipeline().parameters.P_HostName",
+								"type": "Expression"
+							},
+							"P_PortNumber": {
+								"value": "@pipeline().parameters.P_PortNumber",
+								"type": "Expression"
+							},
+							"P_ServiceName": {
+								"value": "@pipeline().parameters.P_ServiceName",
+								"type": "Expression"
+							},
+							"P_UserName": {
+								"value": "@pipeline().parameters.P_UserName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_OracleToSynapse",
+						"type": "DatasetReference",
+						"parameters": {
+							"C_C_Sink_SchemaOrPath": {
+								"value": "@pipeline().parameters.P_Sink_SchemaOrPath",
+								"type": "Expression"
+							},
+							"C_C_Sink_TableOrFile": {
+								"value": "@pipeline().parameters.P_Sink_TableOrFile",
+								"type": "Expression"
+							},
+							"C_C_Sink_KV_Service": {
+								"value": "@pipeline().parameters.P_Sink_KV_Service",
+								"type": "Expression"
+							},
+							"C_C_Sink_KV_Secret": {
+								"value": "@pipeline().parameters.P_Sink_KV_Secret",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "Update Execution Detail",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Oracle To Synapse",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_UpdateExecutionDetail]",
+					"storedProcedureParameters": {
+						"Error": {
+							"value": null,
+							"type": "String"
+						},
+						"Id_Execution": {
+							"value": {
+								"value": "@pipeline().parameters.P_Id_Execution",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"IsError": {
+							"value": {
+								"value": "@empty(activity('Copy Oracle To Synapse').output.errors)",
+								"type": "Expression"
+							},
+							"type": "Boolean"
+						},
+						"rowsCopied": {
+							"value": {
+								"value": "@activity('Copy Oracle To Synapse').output.rowsCopied",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"Source_TableOrFile": {
+							"value": {
+								"value": "@pipeline().parameters.P_Source_TableOrFile",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "DS_ParquetToSynapse_Input",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"C_P_KV_Service": {
+							"value": "@pipeline().parameters.P_Sink_KV_Service",
+							"type": "Expression"
+						},
+						"C_P_KV_Secret": {
+							"value": "@pipeline().parameters.P_Sink_KV_Secret",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Update Execution Detail Error",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Oracle To Synapse",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_UpdateExecutionDetail]",
+					"storedProcedureParameters": {
+						"Error": {
+							"value": {
+								"value": "@activity('Copy Oracle To Synapse').Error.Message",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"Id_Execution": {
+							"value": {
+								"value": "@pipeline().parameters.P_Id_Execution",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"IsError": {
+							"value": {
+								"value": "@empty(activity('Copy Oracle To Synapse').output.errors)",
+								"type": "Expression"
+							},
+							"type": "Boolean"
+						},
+						"rowsCopied": {
+							"value": null,
+							"type": "Int32"
+						},
+						"Source_TableOrFile": {
+							"value": {
+								"value": "@pipeline().parameters.P_Source_TableOrFile",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "DS_ParquetToSynapse_Input",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"C_P_KV_Service": {
+							"value": "@pipeline().parameters.P_Sink_KV_Service",
+							"type": "Expression"
+						},
+						"C_P_KV_Secret": {
+							"value": "@pipeline().parameters.P_Sink_KV_Secret",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Update Load Date",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Update Execution Detail",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "usp_UpdateFileDates",
+					"storedProcedureParameters": {
+						"ProcessName": {
+							"value": {
+								"value": "@pipeline().parameters.P_ProcessName",
+								"type": "Expression"
+							}
+						},
+						"ProcessType": {
+							"value": {
+								"value": "@pipeline().parameters.P_ProcessType",
+								"type": "Expression"
+							}
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_Synapse_init",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"P_Source_KV_Service": {
+				"type": "string"
+			},
+			"P_Source_KV_Secret": {
+				"type": "string"
+			},
+			"P_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Source_TableOrFile": {
+				"type": "string"
+			},
+			"P_Sink_KV_Service": {
+				"type": "string"
+			},
+			"P_Sink_KV_Secret": {
+				"type": "string"
+			},
+			"P_Sink_TableOrFile": {
+				"type": "string"
+			},
+			"P_Source_Query": {
+				"type": "string"
+			},
+			"P_Sink_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Id_Execution": {
+				"type": "string"
+			},
+			"P_HostName": {
+				"type": "string"
+			},
+			"P_PortNumber": {
+				"type": "string"
+			},
+			"P_ServiceName": {
+				"type": "string"
+			},
+			"P_UserName": {
+				"type": "string"
+			},
+			"P_ProcessType": {
+				"type": "string"
+			},
+			"P_ProcessName": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"StartDate": {
+				"type": "String"
+			},
+			"Quey_Name": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "00.Generics"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-27T23:07:48Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

@@ -1,0 +1,38 @@
+{
+	"name": "PLRTP",
+	"properties": {
+		"description": "Ejecuta el proceso para el calculo de campañas de",
+		"activities": [
+			{
+				"name": "Execute Process",
+				"description": "Ejecutar el proceso de calculo de campañas para",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PLGetInitExecution",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ProcessName": {
+							"value": "OracleToSynapse",
+							"type": "Expression"
+						},
+						"ProcessType": {
+							"value": "RTP",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "03.RTP"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-13T14:37:02Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

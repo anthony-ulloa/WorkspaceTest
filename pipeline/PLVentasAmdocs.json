@@ -1,0 +1,38 @@
+{
+	"name": "PLVentasAmdocs",
+	"properties": {
+		"description": "Proceso que realiza el cargue de las ventas registradas en amdocs",
+		"activities": [
+			{
+				"name": "Execute Process",
+				"description": "Ejecutar el proceso de obtener las ventas registradas en amdocs",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PLGetInitExecution",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ProcessName": {
+							"value": "OracleToADLS",
+							"type": "Expression"
+						},
+						"ProcessType": {
+							"value": "VentasAmdocs",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "05.VentasAmdocs"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-18T18:08:16Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

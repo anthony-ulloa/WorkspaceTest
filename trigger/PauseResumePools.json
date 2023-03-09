@@ -1,0 +1,40 @@
+{
+	"name": "PauseResumePools",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PLResumePoolsQA",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Week",
+				"interval": 1,
+				"startTime": "2023-01-17T20:03:00",
+				"timeZone": "Central Standard Time (Mexico)",
+				"schedule": {
+					"minutes": [
+						0
+					],
+					"hours": [
+						20,
+						8
+					],
+					"weekDays": [
+						"Tuesday",
+						"Wednesday",
+						"Thursday",
+						"Friday",
+						"Monday"
+					]
+				}
+			}
+		}
+	}
+}

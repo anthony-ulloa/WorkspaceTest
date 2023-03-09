@@ -1,0 +1,85 @@
+{
+	"name": "PIP_GetInitParameter",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get Init Parameters initial",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "select [Value] as V_Parameter from [dbo].[Parameters]\nwhere [active] = '1'\norder by [order] asc\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Execute_ProcessName",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Init Parameters initial",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Init Parameters initial').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 1,
+					"activities": [
+						{
+							"name": "Execute PIP Init Execution",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PIP_GetInitExecution",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"P_ProcessName": {
+										"value": "@item().V_Parameter",
+										"type": "Expression"
+									},
+									"P_DateQuery": {
+										"value": "@utcnow('yyyy-MM-dd HH:mm:ss')",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"folder": {
+			"name": "PIP_Migration_Data"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-09T17:11:40Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

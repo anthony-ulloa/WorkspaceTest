@@ -1,0 +1,130 @@
+{
+	"name": "PLTroya",
+	"properties": {
+		"description": "Ejecuta el proceso troya que calcula los numeros que fueron asignados como numeros en cuarentena",
+		"activities": [
+			{
+				"name": "Execute Process",
+				"description": "Ejecutar el proceso de calculo de numeros en cuarentena para generar la infomracion del proceso troya",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PLGetInitExecution",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ProcessName": {
+							"value": "OracleToADLS",
+							"type": "Expression"
+						},
+						"ProcessType": {
+							"value": "Troya",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "Get Total Records",
+				"description": "Validar si todos los datos del proceso de troya fueron ingestados",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Execute Process",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "SELECT CAST(COUNT(0) AS CHAR(1)) AS TOTAL\nFROM (SELECT LoadDate\n      FROM (SELECT  * FROM MigrationTable) A\n      WHERE ProcessType='Troya'\n      AND LoadDate=CAST(GETUTCDATE() AS DATE)\n      GROUP BY LoadDate\n      HAVING COUNT(0)=4\n    ) B",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Set variableTotal Records",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Get Total Records",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "TotalRecords",
+					"value": {
+						"value": "@{activity('Get Total Records').output.firstRow.total}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Generate Information",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Set variableTotal Records",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('TotalRecords'),'1' )",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Execute Troya Proccess",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PLGenerateInformationOfTroya",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"TotalRecords": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "02.Troya"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-07T22:18:24Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

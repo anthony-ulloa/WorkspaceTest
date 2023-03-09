@@ -1,0 +1,204 @@
+{
+	"name": "PLPauseResume",
+	"properties": {
+		"description": "Pipeline para detener sql pools dedicados ",
+		"activities": [
+			{
+				"name": "GET List",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": {
+						"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionID,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.WorkspaceName,'/sqlPools?api-version=2019-06-01-preview')",
+						"type": "Expression"
+					},
+					"connectVia": {
+						"referenceName": "AutoResolveIntegrationRuntime",
+						"type": "IntegrationRuntimeReference"
+					},
+					"method": "GET",
+					"authentication": {
+						"type": "MSI",
+						"resource": {
+							"value": "https://management.azure.com/",
+							"type": "Expression"
+						}
+					}
+				}
+			},
+			{
+				"name": "ForEach_pool",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "GET List",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('GET List').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "CheckState",
+							"type": "WebActivity",
+							"dependsOn": [
+								{
+									"activity": "If Condition",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"url": {
+									"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionID,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.WorkspaceName,'/sqlPools/',item().name,'?api-version=2019-06-01-preview')",
+									"type": "Expression"
+								},
+								"connectVia": {
+									"referenceName": "AutoResolveIntegrationRuntime",
+									"type": "IntegrationRuntimeReference"
+								},
+								"method": "GET",
+								"authentication": {
+									"type": "MSI",
+									"resource": {
+										"value": "https://management.azure.com/",
+										"type": "Expression"
+									}
+								}
+							}
+						},
+						{
+							"name": "If Condition",
+							"type": "IfCondition",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(item().properties.status,'Online')",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "SQLPoolResume",
+										"type": "WebActivity",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"url": {
+												"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionID,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.WorkspaceName,'/sqlPools/',item().name,'/resume?api-version=2019-06-01-preview')",
+												"type": "Expression"
+											},
+											"connectVia": {
+												"referenceName": "AutoResolveIntegrationRuntime",
+												"type": "IntegrationRuntimeReference"
+											},
+											"method": "POST",
+											"body": "{\"Pause and Resume\"}",
+											"authentication": {
+												"type": "MSI",
+												"resource": "https://management.azure.com/"
+											}
+										}
+									}
+								],
+								"ifTrueActivities": [
+									{
+										"name": "SQLPoolPause",
+										"type": "WebActivity",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "0.12:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"url": {
+												"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionID,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.WorkspaceName,'/sqlPools/',item().name,'/pause?api-version=2019-06-01-preview')",
+												"type": "Expression"
+											},
+											"connectVia": {
+												"referenceName": "AutoResolveIntegrationRuntime",
+												"type": "IntegrationRuntimeReference"
+											},
+											"method": "POST",
+											"body": "{\"Pause and Resume\"}",
+											"authentication": {
+												"type": "MSI",
+												"resource": {
+													"value": "https://management.azure.com/",
+													"type": "Expression"
+												}
+											}
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"ResourceGroup": {
+				"type": "string",
+				"defaultValue": "AZUESRG0ADL02"
+			},
+			"SubscriptionID": {
+				"type": "string",
+				"defaultValue": "cf5dca6f-5497-4f92-bba0-a7bb0371b601"
+			},
+			"WorkspaceName": {
+				"type": "string",
+				"defaultValue": "azuessywadl02"
+			},
+			"SQLPoolName": {
+				"type": "string",
+				"defaultValue": "Landing"
+			},
+			"PauseOrResume": {
+				"type": "string",
+				"defaultValue": "Pause"
+			}
+		},
+		"folder": {
+			"name": "00.Generics"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-17T19:46:54Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

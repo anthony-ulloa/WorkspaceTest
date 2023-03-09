@@ -1,0 +1,836 @@
+{
+	"name": "PLDataIngestion",
+	"properties": {
+		"description": "Pipeline para realizar la ingesta de datos dependiendo el  nombre del proceso que reciba",
+		"activities": [
+			{
+				"name": "Get Objects to Copy",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_GetObjectsToCopy]",
+						"storedProcedureParameters": {
+							"ProcessName": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.ProcessName",
+									"type": "Expression"
+								}
+							},
+							"ProcessType": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.ProcessType",
+									"type": "Expression"
+								}
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "For Each Object to Copy",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Objects to Copy",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Objects to Copy').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 10,
+					"activities": [
+						{
+							"name": "Condicion Ingesta",
+							"type": "Switch",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"on": {
+									"value": "@item().ProcessName",
+									"type": "Expression"
+								},
+								"cases": [
+									{
+										"value": "ADLSToSynapse",
+										"activities": [
+											{
+												"name": "Copy ADLS to Synapse",
+												"type": "ExecutePipeline",
+												"dependsOn": [
+													{
+														"activity": "Copy ADLS Raw to ADLS Curated",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PIP_LoadADLSToSynpase",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"P_Source_TableOrFile": {
+															"value": "@item().Source_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Source_SchemaOrPath": {
+															"value": "@item().Source_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Sink_SchemaOrPath": {
+															"value": "@item().Sink_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Sink_TableOrFile": {
+															"value": "@item().Sink_TableOrFile",
+															"type": "Expression"
+														},
+														"P_ColumnMapping": {
+															"value": "@item().ColumnMapping",
+															"type": "Expression"
+														},
+														"P_Source_DirectoryFile": {
+															"value": "@item().Source_DirectoryFile",
+															"type": "Expression"
+														},
+														"P_LoadDate": {
+															"value": "@item().LoadDate",
+															"type": "Expression"
+														},
+														"P_KV_Secret": {
+															"value": "@item().Sink_KV_Secret",
+															"type": "Expression"
+														},
+														"P_KV_Service": {
+															"value": "@item().Sink_KV_Service",
+															"type": "Expression"
+														},
+														"P_Id_Execution": {
+															"value": "@item().Id_Execution",
+															"type": "Expression"
+														}
+													}
+												}
+											},
+											{
+												"name": "Copy ADLS Raw to ADLS Curated",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PIP_Update_Curated",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"P_Source_TableOrFile": {
+															"value": "@item().Source_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Source_SchemaOrPath": {
+															"value": "@item().Source_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Sink_TableOrFile": {
+															"value": "@item().Sink_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Source_DirectoryFile": {
+															"value": "@item().Source_DirectoryFile",
+															"type": "Expression"
+														},
+														"P_LoadDate": {
+															"value": "@item().LoadDate",
+															"type": "Expression"
+														},
+														"P_KV_Secret": {
+															"value": "@item().Sink_KV_Secret",
+															"type": "Expression"
+														},
+														"P_KV_Service": {
+															"value": "@item().Sink_KV_Service",
+															"type": "Expression"
+														},
+														"P_Id_Execution": {
+															"value": "@item().Id_Execution",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "OracleToSynapse",
+										"activities": [
+											{
+												"name": "Execute PIP Oracle to Synapse",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PLLoadDataOracleToSynapse",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"P_Source_KV_Service": {
+															"value": "@item().Source_KV_Service",
+															"type": "Expression"
+														},
+														"P_Source_KV_Secret": {
+															"value": "@item().Source_KV_Secret",
+															"type": "Expression"
+														},
+														"P_Source_SchemaOrPath": {
+															"value": "@item().Source_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Source_TableOrFile": {
+															"value": "@item().Source_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Sink_KV_Service": {
+															"value": "@item().Sink_KV_Service",
+															"type": "Expression"
+														},
+														"P_Sink_KV_Secret": {
+															"value": "@item().Sink_KV_Secret",
+															"type": "Expression"
+														},
+														"P_Sink_TableOrFile": {
+															"value": "@item().Sink_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Source_Query": {
+															"value": "@item().Source_Query\n",
+															"type": "Expression"
+														},
+														"P_Sink_SchemaOrPath": {
+															"value": "@item().Sink_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Id_Execution": {
+															"value": "@item().Id_Execution",
+															"type": "Expression"
+														},
+														"P_HostName": {
+															"value": "@item().Source_Host",
+															"type": "Expression"
+														},
+														"P_PortNumber": {
+															"value": "@item().Source_Port",
+															"type": "Expression"
+														},
+														"P_ServiceName": {
+															"value": "@item().Source_ServiceName",
+															"type": "Expression"
+														},
+														"P_UserName": {
+															"value": "@item().Source_LS_UserName",
+															"type": "Expression"
+														},
+														"P_ProcessType": {
+															"value": "@item().ProcessType",
+															"type": "Expression"
+														},
+														"P_ProcessName": {
+															"value": "@item().ProcessName",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "SynapseToADLS",
+										"activities": [
+											{
+												"name": "Execute SynapseToADLS",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PIP_LoadDataSynapseToADLS",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"P_Source_TableOrFile": {
+															"value": "@item().Source_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Source_SchemaOrPath": {
+															"value": "@item().Source_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_KV_Secret": {
+															"value": "@item().Source_KV_Secret",
+															"type": "Expression"
+														},
+														"KV_Service": {
+															"value": "@item().Sink_KV_Service",
+															"type": "Expression"
+														},
+														"P_Sink_DirectoryFile": {
+															"value": "@item().Source_DirectoryFile",
+															"type": "Expression"
+														},
+														"P_Id_Execution": {
+															"value": "@item().Id_Execution",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "OracleToADLS",
+										"activities": [
+											{
+												"name": "Execute Pipeline Oracle to ADLS",
+												"description": "Ejecutar el pipe line que copiara la informacion de oracle a data lake",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PLLoadDataOracleToADLS",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"P_Source_KV_Service": {
+															"value": "@item().Source_KV_Service",
+															"type": "Expression"
+														},
+														"P_Source_KV_Secret": {
+															"value": "@item().Source_KV_Secret",
+															"type": "Expression"
+														},
+														"P_Source_SchemaOrPath": {
+															"value": "@item().Source_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Source_TableOrFile": {
+															"value": "@item().Source_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Sink_KV_Service": {
+															"value": "@item().Sink_KV_Service",
+															"type": "Expression"
+														},
+														"P_Sink_KV_Secret": {
+															"value": "@item().Sink_KV_Secret",
+															"type": "Expression"
+														},
+														"P_Sink_TableOrFile": {
+															"value": "@item().Sink_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Source_Query": {
+															"value": "@item().Source_Query",
+															"type": "Expression"
+														},
+														"P_Sink_SchemaOrPath": {
+															"value": "@item().Sink_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Id_Execution": {
+															"value": "@item().Id_Execution",
+															"type": "Expression"
+														},
+														"P_C_Source_DirectoryFile": {
+															"value": "@item().Source_DirectoryFile",
+															"type": "Expression"
+														},
+														"P_C_LoadDate": {
+															"value": "@item().LoadDate",
+															"type": "Expression"
+														},
+														"P_ProcessType": {
+															"value": "@item().ProcessType",
+															"type": "Expression"
+														},
+														"P_ProcessName": {
+															"value": "@item().ProcessName",
+															"type": "Expression"
+														},
+														"P_Source_HostName": {
+															"value": "@item().Source_Host",
+															"type": "Expression"
+														},
+														"P_Source_PortNumber": {
+															"value": "@item().Source_Port",
+															"type": "Expression"
+														},
+														"P_Source_ServiceName": {
+															"value": "@item().Source_ServiceName",
+															"type": "Expression"
+														},
+														"P_Source_UserName": {
+															"value": "@item().Source_LS_UserName",
+															"type": "Expression"
+														},
+														"P_Sink_URL": {
+															"value": "@item().Sink_URL",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "SnowflakeToADLS",
+										"activities": [
+											{
+												"name": "Execute Pipeline Snowflake to ADLS",
+												"description": "Ejecutar el pipe line que copiara la informacion de snowflake a data lake",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PLLoadDataSnowflakeToADLS",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"P_Source_KV_Service": {
+															"value": "@item().Source_KV_Service",
+															"type": "Expression"
+														},
+														"P_Source_KV_Secret": {
+															"value": "@item().Source_KV_Secret",
+															"type": "Expression"
+														},
+														"P_Source_SchemaOrPath": {
+															"value": "@item().Source_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Source_TableOrFile": {
+															"value": "@item().Source_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Sink_KV_Service": {
+															"value": "@item().Sink_KV_Service",
+															"type": "Expression"
+														},
+														"P_Sink_KV_Secret": {
+															"value": "@item().Sink_KV_Secret",
+															"type": "Expression"
+														},
+														"P_Sink_TableOrFile": {
+															"value": "@item().Sink_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Source_Query": {
+															"value": "@item().Source_Query",
+															"type": "Expression"
+														},
+														"P_Sink_SchemaOrPath": {
+															"value": "@item().Sink_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Id_Execution": {
+															"value": "@item().Id_Execution",
+															"type": "Expression"
+														},
+														"P_C_Source_DirectoryFile": {
+															"value": "@item().Source_DirectoryFile",
+															"type": "Expression"
+														},
+														"P_C_LoadDate": {
+															"value": "@item().LoadDate",
+															"type": "Expression"
+														},
+														"P_ProcessType": {
+															"value": "@item().ProcessType",
+															"type": "Expression"
+														},
+														"P_ProcessName": {
+															"value": "@item().ProcessName",
+															"type": "Expression"
+														},
+														"P_Source_AccountName": {
+															"value": "@item().Source_AccountName",
+															"type": "Expression"
+														},
+														"P_Source_DBName": {
+															"value": "@item().Source_DBOrContainer",
+															"type": "Expression"
+														},
+														"P_Source_WareHouse": {
+															"value": "@item().Source_Warehouse",
+															"type": "Expression"
+														},
+														"P_Source_Role": {
+															"value": "@item().Source_Role",
+															"type": "Expression"
+														},
+														"P_Source_UserName": {
+															"value": "@item().Source_LS_UserName",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "VerticaToADLS",
+										"activities": [
+											{
+												"name": "Execute Pipeline Vertica to ADLS",
+												"description": "Ejecutar el pipe line que copiara la informacion de Vertica a data lake",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PLLoadDataVerticaToADLS",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"P_Source_KV_Service": {
+															"value": "@item().Source_KV_Service",
+															"type": "Expression"
+														},
+														"P_Source_KV_Secret": {
+															"value": "@item().Source_KV_Secret",
+															"type": "Expression"
+														},
+														"P_Source_SchemaOrPath": {
+															"value": "@item().Source_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Source_TableOrFile": {
+															"value": "@item().Source_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Sink_KV_Service": {
+															"value": "@item().Sink_KV_Service",
+															"type": "Expression"
+														},
+														"P_Sink_KV_Secret": {
+															"value": "@item().Sink_KV_Secret",
+															"type": "Expression"
+														},
+														"P_Sink_TableOrFile": {
+															"value": "@item().Sink_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Source_Query": {
+															"value": "@item().Source_Query",
+															"type": "Expression"
+														},
+														"P_Sink_SchemaOrPath": {
+															"value": "@item().Sink_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Id_Execution": {
+															"value": "@item().Id_Execution",
+															"type": "Expression"
+														},
+														"P_C_Source_DirectoryFile": {
+															"value": "@item().Source_DirectoryFile",
+															"type": "Expression"
+														},
+														"P_C_LoadDate": {
+															"value": "@item().LoadDate",
+															"type": "Expression"
+														},
+														"P_ProcessType": {
+															"value": "@item().ProcessType",
+															"type": "Expression"
+														},
+														"P_ProcessName": {
+															"value": "@item().ProcessName",
+															"type": "Expression"
+														},
+														"P_Source_HostName": {
+															"value": "@item().Source_Host",
+															"type": "Expression"
+														},
+														"P_Source_PortNumber": {
+															"value": "@item().Source_Port",
+															"type": "Expression"
+														},
+														"P_Source_ServiceName": {
+															"value": "@item().Source_ServiceName",
+															"type": "Expression"
+														},
+														"P_Source_UserName": {
+															"value": "@item().Source_LS_UserName",
+															"type": "Expression"
+														},
+														"P_Sink_URL": {
+															"value": "@item().Sink_URL",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									},
+									{
+										"value": "AmdocsToADLS",
+										"activities": [
+											{
+												"name": "Execute Process",
+												"description": "Realiza el cargue del dia cero",
+												"type": "ExecutePipeline",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"pipeline": {
+														"referenceName": "PLInitialLoadFromAmdocs",
+														"type": "PipelineReference"
+													},
+													"waitOnCompletion": true,
+													"parameters": {
+														"P_Source_KV_Service": {
+															"value": "@item().Source_KV_Service",
+															"type": "Expression"
+														},
+														"P_Source_KV_Secret": {
+															"value": "@item().Source_KV_Secret",
+															"type": "Expression"
+														},
+														"P_Source_SchemaOrPath": {
+															"value": "@item().Source_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Source_TableOrFile": {
+															"value": "@item().Source_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Sink_KV_Service": {
+															"value": "@item().Sink_KV_Service",
+															"type": "Expression"
+														},
+														"P_Sink_KV_Secret": {
+															"value": "@item().Sink_KV_Secret",
+															"type": "Expression"
+														},
+														"P_Sink_TableOrFile": {
+															"value": "@item().Sink_TableOrFile",
+															"type": "Expression"
+														},
+														"P_Source_Query": {
+															"value": "@item().Source_Query",
+															"type": "Expression"
+														},
+														"P_Sink_SchemaOrPath": {
+															"value": "@item().Sink_SchemaOrPath",
+															"type": "Expression"
+														},
+														"P_Id_Execution": {
+															"value": "@item().Id_Execution",
+															"type": "Expression"
+														},
+														"P_C_Source_DirectoryFile": {
+															"value": "@item().Source_DirectoryFile",
+															"type": "Expression"
+														},
+														"P_C_LoadDate": {
+															"value": "@item().LoadDate",
+															"type": "Expression"
+														},
+														"P_ProcessType": {
+															"value": "@item().ProcessType",
+															"type": "Expression"
+														},
+														"P_ProcessName": {
+															"value": "@item().ProcessName",
+															"type": "Expression"
+														},
+														"P_Source_HostName": {
+															"value": "@item().Source_Host",
+															"type": "Expression"
+														},
+														"P_Source_PortNumber": {
+															"value": "@item().Source_Port",
+															"type": "Expression"
+														},
+														"P_Source_ServiceName": {
+															"value": "@item().Source_ServiceName",
+															"type": "Expression"
+														},
+														"P_Source_UserName": {
+															"value": "@item().Source_LS_UserName",
+															"type": "Expression"
+														},
+														"P_Sink_URL": {
+															"value": "@item().Sink_URL",
+															"type": "Expression"
+														},
+														"P_LastValue": {
+															"value": "@item().LastValue",
+															"type": "Expression"
+														},
+														"P_ConditionColumn": {
+															"value": "@item().ConditionColumn",
+															"type": "Expression"
+														}
+													}
+												}
+											}
+										]
+									}
+								],
+								"defaultActivities": [
+									{
+										"name": "Wait Task",
+										"type": "Wait",
+										"dependsOn": [],
+										"userProperties": [],
+										"typeProperties": {
+											"waitTimeInSeconds": 1
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Insert Execution History",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For Each Object to Copy",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_InsertExecutionHistory]",
+					"storedProcedureParameters": {
+						"ProcessType": {
+							"value": {
+								"value": "@pipeline().parameters.ProcessType",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ProcessName": {
+							"value": {
+								"value": "@pipeline().parameters.ProcessName",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_Synapse_init",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Insert Execution History Error",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "For Each Object to Copy",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[dbo].[usp_InsertExecutionHistory]",
+					"storedProcedureParameters": {
+						"ProcessName": {
+							"value": {
+								"value": "@pipeline().parameters.ProcessName",
+								"type": "Expression"
+							},
+							"type": "String"
+						},
+						"ProcessType": {
+							"value": {
+								"value": "@pipeline().parameters.ProcessType",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_Synapse_init",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"ProcessName": {
+				"type": "string"
+			},
+			"ProcessType": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "00.Generics"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-27T22:36:47Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

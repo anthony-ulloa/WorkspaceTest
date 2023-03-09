@@ -1,0 +1,105 @@
+{
+	"name": "PIP_Complete_Update_MigrationData",
+	"properties": {
+		"activities": [
+			{
+				"name": "File_Name",
+				"type": "GetMetadata",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_ADLS_Output_Init_File",
+						"type": "DatasetReference",
+						"parameters": {
+							"Source_FileURL": {
+								"value": "@pipeline().parameters.P_Ini_Source_DirectoryFile",
+								"type": "Expression"
+							}
+						}
+					},
+					"fieldList": [
+						"childItems"
+					],
+					"storeSettings": {
+						"type": "AzureBlobFSReadSettings",
+						"recursive": true,
+						"enablePartitionDiscovery": false
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "ForEach_Files",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "File_Name",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('File_Name').output.childItems",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "SP_Updatedbo_MigrationTable",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_OnFilesADLS]",
+								"storedProcedureParameters": {
+									"Source_File": {
+										"value": {
+											"value": "@item().name",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_Synapse_init",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"P_Ini_Source_DirectoryFile": {
+				"type": "string"
+			}
+		},
+		"folder": {
+			"name": "PIP_Migration_Data"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-09T17:08:46Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

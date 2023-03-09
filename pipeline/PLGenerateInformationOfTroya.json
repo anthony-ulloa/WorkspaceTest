@@ -1,0 +1,163 @@
+{
+	"name": "PLGenerateInformationOfTroya",
+	"properties": {
+		"description": "Pipeline para generar la informacion de Troya",
+		"activities": [
+			{
+				"name": "Get Paths",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "   SELECT  Source_DirectoryFile FROM MigrationTable WHERE ProcessType='Troya'\norder by [Order]",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Generate Paths",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Paths",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Paths').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "Set Paths",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Set tmpPaths",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Paths",
+								"value": {
+									"value": "@variables('tmpPaths')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set tmpPaths",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "tmpPaths",
+								"value": {
+									"value": "@concat(item().Source_DirectoryFile,'/',formatDateTime(convertFromUtc(utcnow(),'Pacific Standard Time (Mexico)'),'yyyy'),'/',formatDateTime(convertFromUtc(utcnow(),'Pacific Standard Time (Mexico)'),'MM'),'/',formatDateTime(convertFromUtc(utcnow(),'Pacific Standard Time (Mexico)'),'dd'),'|',variables('Paths'))",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Troya Transformations",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "Generate Paths",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/s09321@mx.att.com/Troya/TroyaApp",
+					"baseParameters": {
+						"Paths": {
+							"value": "@variables('Paths')",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "DatabricksLinkedServiceTestVinkos",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Insert Data into LogicalResourceDeactivated",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "Troya Transformations",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/s09321@mx.att.com/Troya/InsertIntoLogicalResourceDeactivated"
+				},
+				"linkedServiceName": {
+					"referenceName": "DatabricksLinkedServiceTestVinkos",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"variables": {
+			"Paths": {
+				"type": "String"
+			},
+			"tmpPaths": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "02.Troya"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-09T22:27:21Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

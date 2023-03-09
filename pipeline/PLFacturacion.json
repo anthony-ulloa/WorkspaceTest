@@ -1,0 +1,38 @@
+{
+	"name": "PLFacturacion",
+	"properties": {
+		"description": "Ejecuta el proceso para el calculo de campañas de",
+		"activities": [
+			{
+				"name": "Execute Process",
+				"description": "Ejecutar el proceso de calculo de campañas para",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PLGetInitExecution",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ProcessName": {
+							"value": "OracletoADLS",
+							"type": "Expression"
+						},
+						"ProcessType": {
+							"value": "Facturacion",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "06.Facturacion"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-02-10T22:38:11Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

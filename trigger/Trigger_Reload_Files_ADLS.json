@@ -1,0 +1,24 @@
+{
+	"name": "Trigger_Reload_Files_ADLS",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PIP_ReLoadFilesADLS",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 40,
+				"startTime": "2023-01-13T13:50:00",
+				"timeZone": "Central Standard Time (Mexico)"
+			}
+		}
+	}
+}

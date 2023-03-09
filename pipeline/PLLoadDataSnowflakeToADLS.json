@@ -1,0 +1,1134 @@
+{
+	"name": "PLLoadDataSnowflakeToADLS",
+	"properties": {
+		"description": "Migracion de los datos de snowflake aws a synapse",
+		"activities": [
+			{
+				"name": "Get Distinct Date",
+				"description": "Obtiene la fecha created date de cada tabla ",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Define Column To Get Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeSource",
+						"query": {
+							"value": "@concat('SELECT DISTINCT date_trunc(''DAY'',to_date(',variables('Field_Date'),')) created_date FROM ',pipeline().parameters.P_Source_SchemaOrPath,'.',pipeline().parameters.P_Source_TableOrFile, ' LEFT OUTER JOIN ATT_DASHBOARD_INVENTORY_MEXICO.WATERMARK ON date_trunc(''DAY'',to_date(',variables('Field_Date'),'))=date_trunc(''DAY'',to_date(LOADED_DATE)) AND TABLE_NAME=''', pipeline().parameters.P_Source_TableOrFile,''' WHERE date_trunc(''DAY'',to_date(LOADED_DATE)) IS NULL ORDER BY 1 DESC')",
+							"type": "Expression"
+						},
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "DsSnowflakeDynamic",
+						"type": "DatasetReference",
+						"parameters": {
+							"CCKVService": {
+								"value": "@pipeline().parameters.P_Source_KV_Service",
+								"type": "Expression"
+							},
+							"CCKVSecret": {
+								"value": "@pipeline().parameters.P_Source_KV_Secret",
+								"type": "Expression"
+							},
+							"UserName": {
+								"value": "@pipeline().parameters.P_Source_UserName",
+								"type": "Expression"
+							},
+							"C_Source_SchemaOrPath": {
+								"value": "@pipeline().parameters.P_Source_SchemaOrPath",
+								"type": "Expression"
+							},
+							"C_Source_TableOrFile": {
+								"value": "@pipeline().parameters.P_Source_TableOrFile",
+								"type": "Expression"
+							},
+							"AccountName": {
+								"value": "@pipeline().parameters.P_Source_AccountName",
+								"type": "Expression"
+							},
+							"Database": {
+								"value": "@pipeline().parameters.P_Source_DBName",
+								"type": "Expression"
+							},
+							"Warehosue": {
+								"value": "@pipeline().parameters.P_Source_WareHouse",
+								"type": "Expression"
+							},
+							"Role": {
+								"value": "@pipeline().parameters.P_Source_Role",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Copy Records",
+				"description": "Crea archivos en ADLS según la fecha recibida.",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Distinct Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Distinct Date').output.value",
+						"type": "Expression"
+					},
+					"batchCount": 5,
+					"activities": [
+						{
+							"name": "Copy Snowflake To ADLS",
+							"description": "Copiar datos desde cualquier base de datos snowflake al data lake",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SnowflakeSource",
+									"query": {
+										"value": "@concat(pipeline().parameters.P_Source_Query,' WHERE date_trunc(''DAY'',to_date(',variables('Field_Date'),')) =', '''', item().created_date,'''')",
+										"type": "Expression"
+									},
+									"exportSettings": {
+										"type": "SnowflakeExportCopyCommand"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobStorageWriteSettings",
+										"maxConcurrentConnections": 2,
+										"copyBehavior": "MergeFiles"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": true,
+								"stagingSettings": {
+									"linkedServiceName": {
+										"referenceName": "LSDynmaicToABSWithSasUri",
+										"type": "LinkedServiceReference",
+										"parameters": {
+											"C_C_KV_Service": {
+												"value": "@pipeline().parameters.P_Sink_KV_Service",
+												"type": "Expression"
+											},
+											"CCKVSecret": {
+												"value": "@pipeline().parameters.P_Sink_KV_Secret",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"enableSkipIncompatibleRow": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DsSnowflakeDynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"CCKVService": {
+											"value": "@pipeline().parameters.P_Source_KV_Service",
+											"type": "Expression"
+										},
+										"CCKVSecret": {
+											"value": "@pipeline().parameters.P_Source_KV_Secret",
+											"type": "Expression"
+										},
+										"UserName": {
+											"value": "@pipeline().parameters.P_Source_UserName",
+											"type": "Expression"
+										},
+										"C_Source_SchemaOrPath": {
+											"value": "@pipeline().parameters.P_Source_SchemaOrPath",
+											"type": "Expression"
+										},
+										"C_Source_TableOrFile": {
+											"value": "@pipeline().parameters.P_Source_TableOrFile",
+											"type": "Expression"
+										},
+										"AccountName": {
+											"value": "@pipeline().parameters.P_Source_AccountName",
+											"type": "Expression"
+										},
+										"Database": {
+											"value": "@pipeline().parameters.P_Source_DBName",
+											"type": "Expression"
+										},
+										"Warehosue": {
+											"value": "@pipeline().parameters.P_Source_WareHouse",
+											"type": "Expression"
+										},
+										"Role": {
+											"value": "@pipeline().parameters.P_Source_Role",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DsCsvDynamicSourceABSSnowflake",
+									"type": "DatasetReference",
+									"parameters": {
+										"P_CCKVService": {
+											"value": "@pipeline().parameters.P_Sink_KV_Service",
+											"type": "Expression"
+										},
+										"P_CCKVSecret": {
+											"value": "@pipeline().parameters.P_Sink_KV_Secret",
+											"type": "Expression"
+										},
+										"P_File": {
+											"value": "@concat(pipeline().parameters.P_Sink_TableOrFile,'_',item().created_date,'.csv')",
+											"type": "Expression"
+										},
+										"P_Path": {
+											"value": "@pipeline().parameters.P_Sink_SchemaOrPath",
+											"type": "Expression"
+										},
+										"P_Directory": {
+											"value": "@pipeline().parameters.P_C_Source_DirectoryFile",
+											"type": "Expression"
+										},
+										"P_AccountName": {
+											"value": "@pipeline().parameters.P_Sink_AccountName",
+											"type": "Expression"
+										},
+										"P_EndpointSuffix": {
+											"value": "@pipeline().parameters.P_Sink_EndpointSuffix",
+											"type": "Expression"
+										},
+										"P_IsHeader": true
+									}
+								}
+							]
+						},
+						{
+							"name": "Update Execution Detail",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Insert load date",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_UpdateExecutionDetail]",
+								"storedProcedureParameters": {
+									"Error": {
+										"value": null,
+										"type": "String"
+									},
+									"Id_Execution": {
+										"value": {
+											"value": "@pipeline().parameters.P_Id_Execution",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"IsError": {
+										"value": {
+											"value": "@empty(activity('Copy Snowflake To ADLS').output.errors)",
+											"type": "Expression"
+										},
+										"type": "Boolean"
+									},
+									"rowsCopied": {
+										"value": {
+											"value": "@activity('Copy Snowflake To ADLS').output.rowsCopied",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"Source_TableOrFile": {
+										"value": {
+											"value": "@pipeline().parameters.P_Source_TableOrFile",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_Synapse_init",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Update Execution Detail Error",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Insert load date",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_UpdateExecutionDetail]",
+								"storedProcedureParameters": {
+									"Error": {
+										"value": {
+											"value": "@activity('Copy Snowflake To ADLS').Error.Message",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Id_Execution": {
+										"value": {
+											"value": "@pipeline().parameters.P_Id_Execution",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"IsError": {
+										"value": {
+											"value": "@empty(activity('Copy Snowflake To ADLS').output.errors)",
+											"type": "Expression"
+										},
+										"type": "Boolean"
+									},
+									"rowsCopied": {
+										"value": null,
+										"type": "Int32"
+									},
+									"Source_TableOrFile": {
+										"value": {
+											"value": "@pipeline().parameters.P_Source_TableOrFile",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_Synapse_init",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Insert load date",
+							"description": "Registra en snowflake la fecha de cargue de cada tabla.",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Copy Snowflake To ADLS",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "LSDynamicToSnowflake",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"AccountName": {
+										"value": "@pipeline().parameters.P_Source_AccountName",
+										"type": "Expression"
+									},
+									"UserName": {
+										"value": "@pipeline().parameters.P_Source_UserName",
+										"type": "Expression"
+									},
+									"Database": {
+										"value": "@pipeline().parameters.P_Source_DBName",
+										"type": "Expression"
+									},
+									"Warehosue": {
+										"value": "@pipeline().parameters.P_Source_WareHouse",
+										"type": "Expression"
+									},
+									"Role": {
+										"value": "@pipeline().parameters.P_Source_Role",
+										"type": "Expression"
+									},
+									"CCKVService": {
+										"value": "@pipeline().parameters.P_Source_KV_Service",
+										"type": "Expression"
+									},
+									"CCKVSecret": {
+										"value": "@pipeline().parameters.P_Source_KV_Secret",
+										"type": "Expression"
+									}
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "@concat('INSERT INTO  ATT_DASHBOARD_INVENTORY_MEXICO.WATERMARK VALUES (''', pipeline().parameters.P_Source_TableOrFile,''',''',item().created_date,''',''',pipeline().parameters.P_Sink_SchemaOrPath,'/',pipeline().parameters.P_C_Source_DirectoryFile,''',0)')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Update Load Date",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Copy Records",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "usp_UpdateFileDates",
+					"storedProcedureParameters": {
+						"ProcessName": {
+							"value": {
+								"value": "@pipeline().parameters.P_ProcessName",
+								"type": "Expression"
+							}
+						},
+						"ProcessType": {
+							"value": {
+								"value": "@pipeline().parameters.P_ProcessType",
+								"type": "Expression"
+							}
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_Synapse_init",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Insert Data Synapse",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Get Files",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Get Files').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copy data from ADLS to Synapse",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "SqlDWSink",
+									"writeBehavior": "Insert",
+									"sqlWriterUseTableLock": true,
+									"tableOption": "autoCreate",
+									"disableMetricsCollection": false
+								},
+								"enableStaging": true,
+								"stagingSettings": {
+									"linkedServiceName": {
+										"referenceName": "LSDynmaicToABSWithSasUri",
+										"type": "LinkedServiceReference",
+										"parameters": {
+											"C_C_KV_Service": "@pipeline().parameters.P_Sink_KV_Service",
+											"CCKVSecret": {
+												"value": "@pipeline().parameters.P_Sink_KV_Secret",
+												"type": "Expression"
+											}
+										}
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DsCsvDynamicSourceABSSnowflake",
+									"type": "DatasetReference",
+									"parameters": {
+										"P_CCKVService": {
+											"value": "@pipeline().parameters.P_Sink_KV_Service",
+											"type": "Expression"
+										},
+										"P_CCKVSecret": {
+											"value": "@pipeline().parameters.P_Sink_KV_Secret",
+											"type": "Expression"
+										},
+										"P_File": {
+											"value": "@item().NAME",
+											"type": "Expression"
+										},
+										"P_Path": {
+											"value": "@pipeline().parameters.P_Sink_SchemaOrPath",
+											"type": "Expression"
+										},
+										"P_Directory": {
+											"value": "@pipeline().parameters.P_C_Source_DirectoryFile",
+											"type": "Expression"
+										},
+										"P_AccountName": {
+											"value": "@pipeline().parameters.P_Sink_AccountName",
+											"type": "Expression"
+										},
+										"P_EndpointSuffix": {
+											"value": "@pipeline().parameters.P_Sink_EndpointSuffix",
+											"type": "Expression"
+										},
+										"P_IsHeader": true
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_init_Output_Synapse_Snowflake",
+									"type": "DatasetReference",
+									"parameters": {
+										"TableName": {
+											"value": "@concat(substring(item().name,0,lastIndexOf(item().name,'_')))\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Update Is Copied",
+							"description": "Actualiza en snowflake si los archivos copiados se migraron a Synapse",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Copy data from ADLS to Synapse",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "LSDynamicToSnowflake",
+								"type": "LinkedServiceReference",
+								"parameters": {
+									"AccountName": {
+										"value": "@pipeline().parameters.P_Source_AccountName",
+										"type": "Expression"
+									},
+									"UserName": {
+										"value": "@pipeline().parameters.P_Source_UserName",
+										"type": "Expression"
+									},
+									"Database": {
+										"value": "@pipeline().parameters.P_Source_DBName",
+										"type": "Expression"
+									},
+									"Warehosue": {
+										"value": "@pipeline().parameters.P_Source_WareHouse",
+										"type": "Expression"
+									},
+									"Role": {
+										"value": "@pipeline().parameters.P_Source_Role",
+										"type": "Expression"
+									},
+									"CCKVService": {
+										"value": "@pipeline().parameters.P_Source_KV_Service",
+										"type": "Expression"
+									},
+									"CCKVSecret": "@pipeline().parameters.P_Source_KV_Secret"
+								}
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "NonQuery",
+										"text": {
+											"value": "@concat('UPDATE ATT_DASHBOARD_INVENTORY_MEXICO.WATERMARK SET IS_COPIED=1 WHERE TABLE_NAME=''',pipeline().parameters.P_Source_TableOrFile, ''' AND date_trunc(''DAY'',to_date(LOADED_DATE)) =date_trunc(''DAY'',to_date(''',substring(item().name,add(lastIndexOf(item().name,'_'),1),10),'''))')",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Get Files",
+				"description": "Obtiene los archivos a copiar en synapse",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Update Load Date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeSource",
+						"query": {
+							"value": "@concat('SELECT *,TABLE_NAME || ''_'' || LOADED_DATE ||', '''.csv''',' NAME FROM  ATT_DASHBOARD_INVENTORY_MEXICO.WATERMARK WHERE IS_COPIED=0')",
+							"type": "Expression"
+						},
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						}
+					},
+					"dataset": {
+						"referenceName": "DsSnowflakeDynamic",
+						"type": "DatasetReference",
+						"parameters": {
+							"CCKVService": {
+								"value": "@pipeline().parameters.P_Source_KV_Service",
+								"type": "Expression"
+							},
+							"CCKVSecret": {
+								"value": "@pipeline().parameters.P_Source_KV_Secret",
+								"type": "Expression"
+							},
+							"UserName": {
+								"value": "@pipeline().parameters.P_Source_UserName",
+								"type": "Expression"
+							},
+							"C_Source_SchemaOrPath": {
+								"value": "@pipeline().parameters.P_Source_SchemaOrPath",
+								"type": "Expression"
+							},
+							"C_Source_TableOrFile": {
+								"value": "@pipeline().parameters.P_Source_TableOrFile",
+								"type": "Expression"
+							},
+							"AccountName": {
+								"value": "@pipeline().parameters.P_Source_AccountName",
+								"type": "Expression"
+							},
+							"Database": {
+								"value": "@pipeline().parameters.P_Source_DBName",
+								"type": "Expression"
+							},
+							"Warehosue": {
+								"value": "@pipeline().parameters.P_Source_WareHouse",
+								"type": "Expression"
+							},
+							"Role": {
+								"value": "@pipeline().parameters.P_Source_Role",
+								"type": "Expression"
+							}
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Define Column To Get Date",
+				"type": "Switch",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"on": {
+						"value": "@pipeline().parameters.P_Source_TableOrFile",
+						"type": "Expression"
+					},
+					"cases": [
+						{
+							"value": "DEVICECONSUMPTION",
+							"activities": [
+								{
+									"name": "STOCK_CONSUMPTION_DATE",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('STOCK_CONSUMPTION_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "CONSUMPTION_BASE_AMD",
+							"activities": [
+								{
+									"name": "CONSUMPTION_DATE",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('CONSUMPTION_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "CONSUMPTION_PLANS_IMEIS",
+							"activities": [
+								{
+									"name": "CONSUMPTION_DATE1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('CONSUMPTION_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "REPORT_CONSUMPTION_ACCESORIES",
+							"activities": [
+								{
+									"name": "CONSUMPTION_DATE2",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('CONSUMPTION_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "CONSUMPTION_BASE_AMDN",
+							"activities": [
+								{
+									"name": "CONSUMPTION_DATE3",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('CONSUMPTION_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "CONSUMPTION_BASE_DNE",
+							"activities": [
+								{
+									"name": "CONSUMPTION_DATE4",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('CONSUMPTION_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "CONSUMPTION_HANDSETS",
+							"activities": [
+								{
+									"name": "CONSUMPTION_DATE5",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('CONSUMPTION_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "CONSUMPTION_BASE_RV2",
+							"activities": [
+								{
+									"name": "CONSUMPTION_DATE6",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('CONSUMPTION_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "REPORT_ON_HAND",
+							"activities": [
+								{
+									"name": "STOCK_INVENTORY_DATE",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('STOCK_INVENTORY_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "REPORT_ON_HAND_ACCESORIES",
+							"activities": [
+								{
+									"name": "STOCK_INVENTORY_DATE1",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('STOCK_INVENTORY_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "REPORT_SERIALS_IN_PENDING",
+							"activities": [
+								{
+									"name": "STOCK_INVENTORY_DATE2",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('STOCK_INVENTORY_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "REPORT_SERIALS_IN_TRANSIT",
+							"activities": [
+								{
+									"name": "STOCK_INVENTORY_DATE3",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('STOCK_INVENTORY_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "INVENTORY_STOCK_SUMMARY_REPORT",
+							"activities": [
+								{
+									"name": "STOCK_INVENTORY_DATE4",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('STOCK_INVENTORY_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "INVENTORY_TRANSIT_SUMMARY_REPORT",
+							"activities": [
+								{
+									"name": "STOCK_INVENTORY_DATE5",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('STOCK_INVENTORY_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "INVENTORY_SUMMARY_REPORT",
+							"activities": [
+								{
+									"name": "STOCK_INVENTORY_DATE6",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('STOCK_INVENTORY_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"value": "INVENTORY_STOCK_SUMMARY_REPORT_STATUS",
+							"activities": [
+								{
+									"name": "STOCK_INVENTORY_DATE7",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Field_Date",
+										"value": {
+											"value": "@string('STOCK_INVENTORY_DATE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					],
+					"defaultActivities": [
+						{
+							"name": "Created Date",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "Field_Date",
+								"value": {
+									"value": "@string('created_date')",
+									"type": "Expression"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"P_Source_KV_Service": {
+				"type": "string"
+			},
+			"P_Source_KV_Secret": {
+				"type": "string"
+			},
+			"P_Source_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Source_TableOrFile": {
+				"type": "string"
+			},
+			"P_Sink_KV_Service": {
+				"type": "string"
+			},
+			"P_Sink_KV_Secret": {
+				"type": "string"
+			},
+			"P_Sink_TableOrFile": {
+				"type": "string"
+			},
+			"P_Source_Query": {
+				"type": "string"
+			},
+			"P_Sink_SchemaOrPath": {
+				"type": "string"
+			},
+			"P_Id_Execution": {
+				"type": "string"
+			},
+			"P_C_Source_DirectoryFile": {
+				"type": "string"
+			},
+			"P_C_LoadDate": {
+				"type": "string"
+			},
+			"P_ProcessType": {
+				"type": "string"
+			},
+			"P_ProcessName": {
+				"type": "string"
+			},
+			"P_Source_AccountName": {
+				"type": "string"
+			},
+			"P_Source_DBName": {
+				"type": "string"
+			},
+			"P_Source_WareHouse": {
+				"type": "string"
+			},
+			"P_Source_Role": {
+				"type": "string"
+			},
+			"P_Source_UserName": {
+				"type": "string"
+			},
+			"P_Sink_AccountName": {
+				"type": "string"
+			},
+			"P_Sink_EndpointSuffix": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"StartDate": {
+				"type": "String"
+			},
+			"Quey_Name": {
+				"type": "String"
+			},
+			"Created_Date": {
+				"type": "String"
+			},
+			"Field_Date": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "01.MigracionSnowflake"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-18T18:07:45Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

@@ -1,0 +1,101 @@
+{
+	"name": "PIP_InitDataMigration",
+	"properties": {
+		"activities": [
+			{
+				"name": "LookupFilesADLS",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": "\tSelect Source_DirectoryFile from (select  Source_DirectoryFile from dbo.MigrationTable where processname = 'ADLSToSynapse' group by Source_DirectoryFile )T\n",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_init_Output_Synapse",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_UpdateFiles",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "LookupFilesADLS",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('LookupFilesADLS').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 4,
+					"activities": [
+						{
+							"name": "ExecuteUpdate",
+							"type": "ExecutePipeline",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"pipeline": {
+									"referenceName": "PIP_Complete_Update_MigrationData",
+									"type": "PipelineReference"
+								},
+								"waitOnCompletion": true,
+								"parameters": {
+									"P_Ini_Source_DirectoryFile": {
+										"value": "@item().Source_DirectoryFile",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Execute_Parameter",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ForEach_UpdateFiles",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PIP_GetInitParameter",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"folder": {
+			"name": "PIP_Migration_Data"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-09T17:11:53Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

@@ -1,0 +1,49 @@
+{
+	"name": "PLResumePoolsQA",
+	"properties": {
+		"description": "Pipeline para detener o inicar los pools dedicados en qa",
+		"activities": [
+			{
+				"name": "Execute Process",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PLPauseResumeDedicatedPools",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"ResourceGroup": {
+							"value": "AZUESRG0ADL02",
+							"type": "Expression"
+						},
+						"SubscriptionID": {
+							"value": "cf5dca6f-5497-4f92-bba0-a7bb0371b601",
+							"type": "Expression"
+						},
+						"WorkspaceName": {
+							"value": "azuessywadl02",
+							"type": "Expression"
+						},
+						"SQLPoolName": {
+							"value": "Landing",
+							"type": "Expression"
+						},
+						"PauseOrResume": {
+							"value": "Pause",
+							"type": "Expression"
+						}
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "00.Generics"
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-01-18T18:07:24Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}
